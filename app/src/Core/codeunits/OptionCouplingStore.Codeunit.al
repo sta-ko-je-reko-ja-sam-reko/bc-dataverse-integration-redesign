@@ -104,6 +104,20 @@ codeunit 80027 "DVI Option Coupling Store"
         exit(CRMOptionMapping.Skipped);
     end;
 
+    /// <summary>
+    /// Returns whether a Business Central option record is unchanged since its last synchronization, compared with the option coupling's own time; option couplings never use CRM Integration Record.
+    /// </summary>
+    /// <param name="LocalRecordRef">The Business Central record.</param>
+    /// <param name="CRMOptionMapping">Its option coupling.</param>
+    /// <returns>True when the record was not modified after the last synchronization.</returns>
+    internal procedure IsUnchangedSinceLastSynch(var LocalRecordRef: RecordRef; CRMOptionMapping: Record "CRM Option Mapping"): Boolean
+    var
+        LocalModifiedAt: DateTime;
+    begin
+        LocalModifiedAt := LocalRecordRef.Field(LocalRecordRef.SystemModifiedAtNo()).Value();
+        exit(LocalModifiedAt <= CRMOptionMapping."Last Synch. Modified On");
+    end;
+
     local procedure InsertCoupling(IntegrationTableMapping: Record "Integration Table Mapping"; LocalRecordId: RecordId; TempOptionValue: Record "DVI Option Value" temporary; var CRMOptionMapping: Record "CRM Option Mapping")
     begin
         CRMOptionMapping.Init();

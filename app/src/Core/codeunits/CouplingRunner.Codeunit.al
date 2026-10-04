@@ -231,15 +231,38 @@ codeunit 80015 "DVI Coupling Runner" implements "DVI ICouplingRunner"
             until IntegrationRecordRef.Next() = 0;
     end;
 
-    local procedure UncoupleAll(IntegrationTableMapping: Record "Integration Table Mapping"; var CouplingAction: Codeunit "DVI Coupling Action"; JobId: Guid)
+    /// <summary>
+    /// Filters the couplings an uncoupling job of a mapping removes: those of its table that belong to the mapping or to no mapping, never those of another mapping on the same table.
+    /// </summary>
+    /// <param name="IntegrationTableMapping">The mapping being uncoupled.</param>
+    /// <param name="CRMIntegrationRecord">Receives the filters.</param>
+    internal procedure SetCouplingFilter(IntegrationTableMapping: Record "Integration Table Mapping"; var CRMIntegrationRecord: Record "CRM Integration Record")
     var
-        CRMIntegrationRecord: Record "CRM Integration Record";
         MappingResolver: Codeunit "DVI Mapping Resolver";
-        LocalRecordRef: RecordRef;
-        IntegrationRecordRef: RecordRef;
     begin
         CRMIntegrationRecord.SetRange("Table ID", IntegrationTableMapping."Table ID");
         CRMIntegrationRecord.SetFilter("DVI Mapping Name", '%1|%2', '', MappingResolver.GetCouplingMappingName(IntegrationTableMapping));
+    end;
+
+    /// <summary>
+    /// Deletes a coupling whose Business Central and Dataverse records both no longer exist, by its primary key (CRM ID, Integration ID).
+    /// </summary>
+    /// <param name="CRMIntegrationRecord">The orphan coupling.</param>
+    internal procedure DeleteOrphanCoupling(CRMIntegrationRecord: Record "CRM Integration Record")
+    var
+        OrphanCRMIntegrationRecord: Record "CRM Integration Record";
+    begin
+        if OrphanCRMIntegrationRecord.Get(CRMIntegrationRecord."CRM ID", CRMIntegrationRecord."Integration ID") then
+            OrphanCRMIntegrationRecord.Delete(true);
+    end;
+
+    local procedure UncoupleAll(IntegrationTableMapping: Record "Integration Table Mapping"; var CouplingAction: Codeunit "DVI Coupling Action"; JobId: Guid)
+    var
+        CRMIntegrationRecord: Record "CRM Integration Record";
+        LocalRecordRef: RecordRef;
+        IntegrationRecordRef: RecordRef;
+    begin
+        SetCouplingFilter(IntegrationTableMapping, CRMIntegrationRecord);
         if not CRMIntegrationRecord.FindSet() then
             exit;
         repeat
@@ -256,14 +279,6 @@ codeunit 80015 "DVI Coupling Runner" implements "DVI ICouplingRunner"
                     DeleteOrphanCoupling(CRMIntegrationRecord);
             end;
         until CRMIntegrationRecord.Next() = 0;
-    end;
-
-    local procedure DeleteOrphanCoupling(CRMIntegrationRecord: Record "CRM Integration Record")
-    var
-        OrphanCRMIntegrationRecord: Record "CRM Integration Record";
-    begin
-        if OrphanCRMIntegrationRecord.Get(CRMIntegrationRecord."CRM ID", CRMIntegrationRecord."Integration ID") then
-            OrphanCRMIntegrationRecord.Delete(true);
     end;
 
     local procedure UncouplePair(var CouplingAction: Codeunit "DVI Coupling Action"; var LocalRecordRef: RecordRef; var IntegrationRecordRef: RecordRef; JobId: Guid)
