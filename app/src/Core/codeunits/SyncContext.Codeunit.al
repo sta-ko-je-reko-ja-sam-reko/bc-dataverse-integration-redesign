@@ -116,6 +116,30 @@ codeunit 80003 "DVI Sync Context"
     end;
 
     /// <summary>
+    /// Queues a record the current record depends on, such as a product a price needs. Unlike a follow-up, it is synchronized even when the current record fails, so the next run can succeed.
+    /// </summary>
+    /// <param name="MappingName">The integration table mapping that synchronizes the prerequisite.</param>
+    /// <param name="SourceSystemId">The SystemId of the prerequisite on the source side.</param>
+    /// <param name="PrerequisiteToIntegrationTable">True when the prerequisite goes from Business Central to Dataverse.</param>
+    procedure AddPrerequisite(MappingName: Code[20]; SourceSystemId: Guid; PrerequisiteToIntegrationTable: Boolean)
+    begin
+        AddFollowUp(MappingName, SourceSystemId, PrerequisiteToIntegrationTable);
+        TempFollowUpBuffer."Keep On Failure" := true;
+        TempFollowUpBuffer.Modify(false);
+    end;
+
+    /// <summary>
+    /// Removes the follow-ups of a record that failed, keeping its prerequisites.
+    /// </summary>
+    procedure DropFollowUpsAfterFailure()
+    begin
+        TempFollowUpBuffer.Reset();
+        TempFollowUpBuffer.SetRange("Keep On Failure", false);
+        TempFollowUpBuffer.DeleteAll(false);
+        TempFollowUpBuffer.Reset();
+    end;
+
+    /// <summary>
     /// Copies the queued follow-ups.
     /// </summary>
     /// <param name="TempTargetFollowUpBuffer">Receives the queued follow-ups.</param>

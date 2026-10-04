@@ -23,6 +23,10 @@ pageextension 80200 "DVI Customer Card" extends "Customer Card"
         {
             Visible = not DVIActive;
         }
+        modify(UpdateStatisticsInCRM)
+        {
+            Visible = not DVIActive;
+        }
         modify(ShowLog)
         {
             Visible = not DVIActive;
@@ -61,6 +65,19 @@ pageextension 80200 "DVI Customer Card" extends "Customer Card"
                     begin
                         DVICurrentRecord(SelectedRecordRef);
                         DVIRecordActions.Synchronize(SelectedRecordRef);
+                    end;
+                }
+                action(DVIUpdateStatistics)
+                {
+                    ApplicationArea = DVIRedesign;
+                    Caption = 'Update Account Statistics';
+                    Image = UpdateXML;
+                    ToolTip = 'Send customer statistics data to Dataverse to update the Account Statistics FactBox.';
+                    Visible = DVIShowUpdateStatistics;
+
+                    trigger OnAction()
+                    begin
+                        DVIRecordActions.UpdateStatistics();
                     end;
                 }
                 group(DVICoupling)
@@ -154,6 +171,7 @@ pageextension 80200 "DVI Customer Card" extends "Customer Card"
         DVIShowDeleteCoupling: Boolean;
         DVIShowCreateInDataverse: Boolean;
         DVIShowLogAction: Boolean;
+        DVIShowUpdateStatistics: Boolean;
 
     local procedure DVIRefresh()
     begin
@@ -166,6 +184,7 @@ pageextension 80200 "DVI Customer Card" extends "Customer Card"
         DVIShowDeleteCoupling := DVIRecordActions.CanDeleteCoupling();
         DVIShowCreateInDataverse := DVIRecordActions.CanCreateInDataverse();
         DVIShowLogAction := DVIRecordActions.CanShowLog();
+        DVIShowUpdateStatistics := DVIRecordActions.CanUpdateStatistics();
     end;
 
     local procedure DVICurrentRecord(var SelectedRecordRef: RecordRef)

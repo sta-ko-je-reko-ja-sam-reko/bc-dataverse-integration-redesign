@@ -27,6 +27,10 @@ table 80001 "DVI Follow-up Buffer"
         {
             Caption = 'To Integration Table';
         }
+        field(5; "Keep On Failure"; Boolean)
+        {
+            Caption = 'Keep On Failure';
+        }
     }
 
     keys

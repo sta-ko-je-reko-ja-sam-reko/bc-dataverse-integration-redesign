@@ -77,9 +77,9 @@ test/src/Core/codeunits/     CDSHandlerTests
   Use *Add Users to Team* on *Dataverse Connection Setup*.
 - Whether contacts may synchronize without a customer or vendor follows Microsoft's default (they may not); a partner
   changes it by its own handler value for the contact mapping.
-- Product → Item (template and number series of new items) comes with the item handler of FEAT-DVI-005.
+- Product → Item (template and number series of new items) comes with the item handler of FEAT-DVI-005a.
 - The option-set metadata of sales documents (payment terms, shipment methods, shipping agents) is Dynamics 365 Sales
-  behaviour and comes with FEAT-DVI-005.
+  behaviour and comes with FEAT-DVI-005a.
 - Microsoft's subscriber that deletes a salesperson's coupling when the salesperson is deleted is not an engine event;
   it stays active.
 - Verified by compilation and unit tests only.

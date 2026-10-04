@@ -1,6 +1,7 @@
 namespace DataverseIntegration.Core;
 
 using DataverseIntegration.CDS;
+using DataverseIntegration.CRM;
 
 permissionset 80000 "DVI Full"
 {
@@ -69,5 +70,15 @@ permissionset 80000 "DVI Full"
         codeunit "DVI Currency Handler" = X,
         codeunit "DVI Salesperson Handler" = X,
         codeunit "DVI CDS Company" = X,
-        codeunit "DVI CDS Relations" = X;
+        codeunit "DVI CDS Relations" = X,
+        codeunit "DVI Product Handler" = X,
+        codeunit "DVI Unit Group Handler" = X,
+        codeunit "DVI Unit Handler" = X,
+        codeunit "DVI Price Level Handler" = X,
+        codeunit "DVI Price Line Handler" = X,
+        codeunit "DVI Opportunity Handler" = X,
+        codeunit "DVI Sales Option Handler" = X,
+        codeunit "DVI CRM Prices" = X,
+        codeunit "DVI CRM Units" = X,
+        codeunit "DVI Account Statistics" = X;
 }
