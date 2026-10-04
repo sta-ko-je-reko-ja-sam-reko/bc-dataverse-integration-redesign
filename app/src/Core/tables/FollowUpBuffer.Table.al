@@ -31,6 +31,18 @@ table 80001 "DVI Follow-up Buffer"
         {
             Caption = 'Keep On Failure';
         }
+        field(6; Completion; Boolean)
+        {
+            Caption = 'Completion';
+        }
+        field(7; "Synch Action"; Enum "DVI Synch Action")
+        {
+            Caption = 'Synch Action';
+        }
+        field(8; "Job Id"; Guid)
+        {
+            Caption = 'Job Id';
+        }
     }
 
     keys
@@ -38,6 +50,9 @@ table 80001 "DVI Follow-up Buffer"
         key(PK; "Entry No.")
         {
             Clustered = true;
+        }
+        key(Completion; Completion, "Entry No.")
+        {
         }
     }
 }

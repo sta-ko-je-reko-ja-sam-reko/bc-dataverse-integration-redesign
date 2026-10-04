@@ -4,12 +4,12 @@ using DataverseIntegration.CDS;
 using DataverseIntegration.CRM;
 
 enum 80000 "DVI Sync Handler" implements "DVI IRecordSync", "DVI IRecordCoupling", "DVI IRecordFilter", "DVI IConflictPolicy", "DVI IOptionSource", "DVI IHandlerScope",
-    "DVI IIntegrationRecordView", "DVI ISynchronizeAction", "DVI ICouplingAction", "DVI ICreateAction", "DVI ISynchLogView", "DVI IStatisticsAction"
+    "DVI IIntegrationRecordView", "DVI ISynchronizeAction", "DVI ICouplingAction", "DVI ICreateAction", "DVI ISynchLogView", "DVI IStatisticsAction", "DVI IRecordCompletion"
 {
     Caption = 'Synchronization Handler';
     Extensible = true;
     DefaultImplementation = "DVI IRecordSync" = "DVI Generic Handler", "DVI IRecordCoupling" = "DVI Generic Handler", "DVI IRecordFilter" = "DVI Generic Handler", "DVI IConflictPolicy" = "DVI Mapping Conflict Policy", "DVI IOptionSource" = "DVI Standard Option Source", "DVI IHandlerScope" = "DVI Generic Handler",
-        "DVI IIntegrationRecordView" = "DVI Standard Record Actions", "DVI ISynchronizeAction" = "DVI Standard Record Actions", "DVI ICouplingAction" = "DVI Standard Record Actions", "DVI ICreateAction" = "DVI Standard Record Actions", "DVI ISynchLogView" = "DVI Standard Record Actions", "DVI IStatisticsAction" = "DVI Standard Record Actions";
+        "DVI IIntegrationRecordView" = "DVI Standard Record Actions", "DVI ISynchronizeAction" = "DVI Standard Record Actions", "DVI ICouplingAction" = "DVI Standard Record Actions", "DVI ICreateAction" = "DVI Standard Record Actions", "DVI ISynchLogView" = "DVI Standard Record Actions", "DVI IStatisticsAction" = "DVI Standard Record Actions", "DVI IRecordCompletion" = "DVI Generic Handler";
 
     value(0; DVIMicrosoft)
     {
@@ -73,5 +73,25 @@ enum 80000 "DVI Sync Handler" implements "DVI IRecordSync", "DVI IRecordCoupling
     {
         Caption = 'Payment Terms/Shipping - Sales Document Options';
         Implementation = "DVI IRecordSync" = "DVI Sales Option Handler", "DVI IHandlerScope" = "DVI Sales Option Handler";
+    }
+    value(270; DVICRMSalesOrder)
+    {
+        Caption = 'Sales Order - Order';
+        Implementation = "DVI IRecordSync" = "DVI Sales Order Handler", "DVI IRecordCoupling" = "DVI Sales Order Handler", "DVI IRecordFilter" = "DVI Sales Order Handler", "DVI IHandlerScope" = "DVI Sales Order Handler", "DVI IRecordCompletion" = "DVI Sales Order Handler";
+    }
+    value(280; DVICRMSalesOrderLine)
+    {
+        Caption = 'Sales Order Line - Order Product';
+        Implementation = "DVI IRecordSync" = "DVI Sales Order Line Handler", "DVI IHandlerScope" = "DVI Sales Order Line Handler";
+    }
+    value(290; DVICRMInvoice)
+    {
+        Caption = 'Posted Sales Invoice - Invoice';
+        Implementation = "DVI IRecordSync" = "DVI Invoice Handler", "DVI IRecordCoupling" = "DVI Invoice Handler", "DVI IRecordFilter" = "DVI Invoice Handler", "DVI IHandlerScope" = "DVI Invoice Handler", "DVI IRecordCompletion" = "DVI Invoice Handler";
+    }
+    value(300; DVICRMInvoiceLine)
+    {
+        Caption = 'Posted Sales Invoice Line - Invoice Product';
+        Implementation = "DVI IRecordSync" = "DVI Invoice Line Handler", "DVI IRecordFilter" = "DVI Invoice Line Handler", "DVI IHandlerScope" = "DVI Invoice Line Handler";
     }
 }

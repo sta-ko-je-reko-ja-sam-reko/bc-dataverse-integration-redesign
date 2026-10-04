@@ -11,6 +11,7 @@ codeunit 80003 "DVI Sync Context"
         TempFollowUpBuffer: Record "DVI Follow-up Buffer" temporary;
         JobId: Guid;
         ToIntegrationTable: Boolean;
+        SynchAction: Enum "DVI Synch Action";
         DestinationInserted: Boolean;
 
     /// <summary>
@@ -95,6 +96,24 @@ codeunit 80003 "DVI Sync Context"
     end;
 
     /// <summary>
+    /// Sets what happened to the record whose completion step runs.
+    /// </summary>
+    /// <param name="NewSynchAction">Insert, modify or unchanged.</param>
+    procedure SetSynchAction(NewSynchAction: Enum "DVI Synch Action")
+    begin
+        SynchAction := NewSynchAction;
+    end;
+
+    /// <summary>
+    /// Returns what happened to the record in a completion step: insert, modify or unchanged.
+    /// </summary>
+    /// <returns>The action; None outside a completion step.</returns>
+    procedure GetSynchAction(): Enum "DVI Synch Action"
+    begin
+        exit(SynchAction);
+    end;
+
+    /// <summary>
     /// Queues a dependent record for synchronization after the current record's transaction, instead of re-entering the pipeline from a step.
     /// </summary>
     /// <param name="MappingName">The integration table mapping that synchronizes the dependent record.</param>
@@ -125,6 +144,31 @@ codeunit 80003 "DVI Sync Context"
     begin
         AddFollowUp(MappingName, SourceSystemId, PrerequisiteToIntegrationTable);
         TempFollowUpBuffer."Keep On Failure" := true;
+        TempFollowUpBuffer.Modify(false);
+    end;
+
+    /// <summary>
+    /// Queues the completion step of a record: after the follow-ups it queued were synchronized, the handler's DVI IRecordCompletion.Complete runs for it. Queued once per record.
+    /// </summary>
+    /// <param name="MappingName">The integration table mapping of the record.</param>
+    /// <param name="LocalSystemId">The SystemId of the Business Central record.</param>
+    /// <param name="CompletionToIntegrationTable">The direction the record was synchronized in.</param>
+    /// <param name="CompletionSynchAction">What happened to the record: insert, modify or unchanged; the completion step reads it with GetSynchAction.</param>
+    procedure AddCompletion(MappingName: Code[20]; LocalSystemId: Guid; CompletionToIntegrationTable: Boolean; CompletionSynchAction: Enum "DVI Synch Action")
+    begin
+        TempFollowUpBuffer.Reset();
+        TempFollowUpBuffer.SetRange(Completion, true);
+        TempFollowUpBuffer.SetRange("Mapping Name", MappingName);
+        TempFollowUpBuffer.SetRange("Source System Id", LocalSystemId);
+        if not TempFollowUpBuffer.IsEmpty() then begin
+            TempFollowUpBuffer.Reset();
+            exit;
+        end;
+        TempFollowUpBuffer.Reset();
+        AddFollowUp(MappingName, LocalSystemId, CompletionToIntegrationTable);
+        TempFollowUpBuffer.Completion := true;
+        TempFollowUpBuffer."Synch Action" := CompletionSynchAction;
+        TempFollowUpBuffer."Job Id" := JobId;
         TempFollowUpBuffer.Modify(false);
     end;
 

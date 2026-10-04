@@ -1,5 +1,7 @@
 namespace DataverseIntegration.Core;
 
+using DataverseIntegration.CRM;
+
 enum 80004 "DVI Value Converter" implements "DVI IValueConverter"
 {
     Caption = 'Value Converter';
@@ -35,6 +37,11 @@ enum 80004 "DVI Value Converter" implements "DVI IValueConverter"
     {
         Caption = 'Option value';
         Implementation = "DVI IValueConverter" = "DVI Option Value Converter";
+    }
+    value(55; DVIWriteInProduct)
+    {
+        Caption = 'Write-in product';
+        Implementation = "DVI IValueConverter" = "DVI Write-in Product Converter";
     }
     value(60; DVICoupledRecordKey)
     {

@@ -46,6 +46,7 @@ permissionset 80000 "DVI Full"
         codeunit "DVI Config. Template Applier" = X,
         codeunit "DVI Integration Record Reader" = X,
         codeunit "DVI Follow-up Processor" = X,
+        codeunit "DVI Completion Runner" = X,
         codeunit "DVI Standard Option Source" = X,
         codeunit "DVI Option Record Synch." = X,
         codeunit "DVI Option Coupling Store" = X,
@@ -80,5 +81,12 @@ permissionset 80000 "DVI Full"
         codeunit "DVI Sales Option Handler" = X,
         codeunit "DVI CRM Prices" = X,
         codeunit "DVI CRM Units" = X,
-        codeunit "DVI Account Statistics" = X;
+        codeunit "DVI Account Statistics" = X,
+        codeunit "DVI Sales Order Handler" = X,
+        codeunit "DVI Sales Order Line Handler" = X,
+        codeunit "DVI Invoice Handler" = X,
+        codeunit "DVI Invoice Line Handler" = X,
+        codeunit "DVI CRM Sales Orders" = X,
+        codeunit "DVI CRM Invoices" = X,
+        codeunit "DVI Write-in Product Converter" = X;
 }

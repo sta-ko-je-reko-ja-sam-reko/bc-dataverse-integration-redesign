@@ -195,7 +195,11 @@ enum value and it takes part in that choice. Details in `FEAT-DVI-003-ValueConve
 - **No `Commit()` inside a step.** The pipeline owns the transaction boundaries, one per record, as the engine does.
 - **No re-entering the engine from a step.** A step that needs a dependent record synchronized (price list lines
   after a price list, invoice lines after an invoice, service lines after a work order) adds it to the context's
-  follow-up queue; the pipeline processes the queue after the record's own transaction.
+  follow-up queue; the pipeline processes the queue after the record's own transaction. A **prerequisite**
+  (`AddPrerequisite`) is a follow-up that survives the failure of the record that queued it. A **completion step**
+  (`AddCompletion`, `DVI IRecordCompletion`) runs for the record itself after all its follow-ups, for work that needs
+  them done, such as a document's totals after its lines; the coupling is re-stamped afterwards, so these changes are
+  not seen as edits in the next run.
 - **No posting inside a step.** Field Service consumption that Microsoft posts from an engine event becomes a
   follow-up action, with its own implementation that a partner can replace.
 - **Guards in one place.** The pipeline asks `DVI IConnection.IsEnabled` once per run; steps never check enablement.
