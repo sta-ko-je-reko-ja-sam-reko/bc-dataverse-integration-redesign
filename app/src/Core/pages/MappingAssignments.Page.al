@@ -45,6 +45,17 @@ page 80001 "DVI Mapping Assignments"
                 end;
             }
         }
+        area(Navigation)
+        {
+            action(FieldConverters)
+            {
+                Caption = 'Field Converters';
+                Image = MapAccounts;
+                RunObject = page "DVI Field Converters";
+                RunPageLink = "Mapping Name" = field("Mapping Name");
+                ToolTip = 'View and change how the values of each field mapping of the selected mapping are converted.';
+            }
+        }
         area(Promoted)
         {
             actionref(SwitchAll_Promoted; SwitchAll)
