@@ -28,7 +28,9 @@ Microsoft's entities are kept as they are: the setup tables, `Integration Table 
 
 ## Status
 
-Project scaffold. The architecture document and the first redesigned flows follow; see `app/docs/`.
+Design stage. Read [the architecture](app/docs/architecture.md) for how the app takes over a mapping and the
+interfaces each step is built on, and [`app/docs/analysis/`](app/docs/analysis/) for the inventory of Microsoft's
+CDS, CRM and Field Service subscribers it is based on. Implementation follows feature by feature (FEAT-DVI-001..006).
 
 ## Target
 
