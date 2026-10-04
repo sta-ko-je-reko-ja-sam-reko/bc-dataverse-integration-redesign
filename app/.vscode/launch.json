@@ -14,7 +14,9 @@
       "schemaUpdateMode": "Synchronize",
       "breakOnError": "All",
       "breakOnRecordWrite": "None",
-      "launchBrowser": true
+      "launchBrowser": true,
+      "startupObjectType": "Page",
+      "startupObjectId": 7200
     }
   ]
 }
