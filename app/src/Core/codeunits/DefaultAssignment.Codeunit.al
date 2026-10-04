@@ -15,6 +15,7 @@ codeunit 80017 "DVI Default Assignment"
     var
         MappingAssignment: Record "DVI Mapping Assignment";
         Context: Codeunit "DVI Sync Context";
+        ConverterAssignment: Codeunit "DVI Converter Assignment";
         HandlerScope: Interface "DVI IHandlerScope";
         Handler: Enum "DVI Sync Handler";
     begin
@@ -29,6 +30,7 @@ codeunit 80017 "DVI Default Assignment"
         MappingAssignment.Validate(Handler, Handler);
         MappingAssignment.Validate(Module, HandlerScope.DefaultModule(Context));
         MappingAssignment.Modify(true);
+        ConverterAssignment.AssignDefaults(IntegrationTableMapping);
     end;
 
     /// <summary>

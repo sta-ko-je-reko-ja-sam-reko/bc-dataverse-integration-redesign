@@ -12,6 +12,7 @@ codeunit 80008 "DVI Field Transfer"
     var
         TempIntegrationFieldMapping: Record "Temp Integration Field Mapping" temporary;
         OutlookSynchTypeConv: Codeunit "Outlook Synch. Type Conv";
+        Converters: Dictionary of [Integer, Integer];
         AnyFieldModified: Boolean;
         BidirectionalFieldModified: Boolean;
         ConflictSourceFieldNo: Integer;
@@ -30,6 +31,7 @@ codeunit 80008 "DVI Field Transfer"
     begin
         TempIntegrationFieldMapping.Reset();
         TempIntegrationFieldMapping.DeleteAll(false);
+        Clear(Converters);
         if ToIntegrationTable then
             Direction := Direction::ToIntegrationTable
         else
@@ -43,6 +45,7 @@ codeunit 80008 "DVI Field Transfer"
             exit(false);
         repeat
             AddFieldMapping(IntegrationFieldMapping, ToIntegrationTable);
+            AddConverter(IntegrationTableMapping, IntegrationFieldMapping);
         until IntegrationFieldMapping.Next() = 0;
         exit(true);
     end;
@@ -50,10 +53,11 @@ codeunit 80008 "DVI Field Transfer"
     /// <summary>
     /// Transfers the loaded field mappings from the source record to the destination record.
     /// </summary>
+    /// <param name="Context">The synchronization context, passed to the value converters.</param>
     /// <param name="SourceRecordRef">The record being synchronized.</param>
     /// <param name="DestinationRecordRef">The record that receives the values.</param>
     /// <param name="OnlyModified">True to transfer only values that differ; false for a new destination, where every value is set.</param>
-    internal procedure TransferFields(var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef; OnlyModified: Boolean)
+    internal procedure TransferFields(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef; OnlyModified: Boolean)
     begin
         AnyFieldModified := false;
         BidirectionalFieldModified := false;
@@ -63,7 +67,7 @@ codeunit 80008 "DVI Field Transfer"
         if not TempIntegrationFieldMapping.FindSet() then
             exit;
         repeat
-            if TransferField(SourceRecordRef, DestinationRecordRef, OnlyModified) then begin
+            if TransferField(Context, SourceRecordRef, DestinationRecordRef, OnlyModified) then begin
                 AnyFieldModified := true;
                 if TempIntegrationFieldMapping.Bidirectional and not BidirectionalFieldModified then begin
                     BidirectionalFieldModified := true;
@@ -123,7 +127,7 @@ codeunit 80008 "DVI Field Transfer"
         TempIntegrationFieldMapping.Insert(false);
     end;
 
-    local procedure TransferField(var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef; OnlyModified: Boolean): Boolean
+    local procedure TransferField(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef; OnlyModified: Boolean): Boolean
     var
         SourceFieldRef: FieldRef;
         DestinationFieldRef: FieldRef;
@@ -145,7 +149,7 @@ codeunit 80008 "DVI Field Transfer"
             SourceFieldRef.CalcField();
         if OnlyModified and not IsFieldModified(SourceFieldRef, DestinationFieldRef) then
             exit(false);
-        exit(TransferFieldValue(SourceFieldRef, DestinationFieldRef, OnlyModified));
+        exit(TransferFieldValue(Context, SourceFieldRef, DestinationFieldRef, OnlyModified));
     end;
 
     local procedure UsesConstantValue(var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef): Boolean
@@ -157,11 +161,14 @@ codeunit 80008 "DVI Field Transfer"
           (TempIntegrationFieldMapping."Source Field No." = TempIntegrationFieldMapping."Destination Field No."));
     end;
 
-    local procedure TransferFieldValue(var SourceFieldRef: FieldRef; var DestinationFieldRef: FieldRef; OnlyModified: Boolean): Boolean
+    local procedure TransferFieldValue(var Context: Codeunit "DVI Sync Context"; var SourceFieldRef: FieldRef; var DestinationFieldRef: FieldRef; OnlyModified: Boolean): Boolean
     var
         NewValue: Variant;
         PreviousValue: Text;
+        NeedsConversion: Boolean;
     begin
+        if Convert(Context, SourceFieldRef, DestinationFieldRef, NewValue, NeedsConversion) then
+            exit(SetConvertedValue(DestinationFieldRef, NewValue, NeedsConversion, OnlyModified));
         if SourceFieldRef.Type() = FieldType::Blob then
             NewValue := GetTextValue(SourceFieldRef)
         else
@@ -319,5 +326,42 @@ codeunit 80008 "DVI Field Transfer"
         if TableMetadata.Get(TableId) then
             exit(TableMetadata.TableType <> TableMetadata.TableType::Normal);
         exit(false);
+    end;
+
+    local procedure AddConverter(IntegrationTableMapping: Record "Integration Table Mapping"; IntegrationFieldMapping: Record "Integration Field Mapping")
+    var
+        ConverterAssignment: Codeunit "DVI Converter Assignment";
+        MappingResolver: Codeunit "DVI Mapping Resolver";
+        Converter: Enum "DVI Value Converter";
+    begin
+        Converter := ConverterAssignment.GetConverter(
+          MappingResolver.GetCouplingMappingName(IntegrationTableMapping), IntegrationFieldMapping."Field No.", IntegrationFieldMapping."Integration Table Field No.");
+        if Converter <> Converter::DVIDirect then
+            Converters.Set(IntegrationFieldMapping."No.", Converter.AsInteger());
+    end;
+
+    local procedure Convert(var Context: Codeunit "DVI Sync Context"; var SourceFieldRef: FieldRef; var DestinationFieldRef: FieldRef; var NewValue: Variant; var NeedsConversion: Boolean): Boolean
+    var
+        ValueConverter: Interface "DVI IValueConverter";
+    begin
+        if not Converters.ContainsKey(TempIntegrationFieldMapping."No.") then
+            exit(false);
+        ValueConverter := Enum::"DVI Value Converter".FromInteger(Converters.Get(TempIntegrationFieldMapping."No."));
+        exit(ValueConverter.Convert(Context, SourceFieldRef, DestinationFieldRef, NewValue, NeedsConversion));
+    end;
+
+    local procedure SetConvertedValue(var DestinationFieldRef: FieldRef; NewValue: Variant; NeedsConversion: Boolean; OnlyModified: Boolean): Boolean
+    var
+        PreviousValue: Text;
+    begin
+        if TempIntegrationFieldMapping."Not Null" and NewValue.IsGuid() then
+            if IsNullGuid(NewValue) then
+                exit(false);
+        if not NeedsConversion then
+            exit(SetDestinationValue(DestinationFieldRef, NewValue, OnlyModified));
+        PreviousValue := GetTextValue(DestinationFieldRef);
+        if not EvaluateTextToFieldRef(Format(NewValue), DestinationFieldRef, TempIntegrationFieldMapping."Validate Destination Field") then
+            exit(false);
+        exit((PreviousValue <> GetTextValue(DestinationFieldRef)) or not OnlyModified);
     end;
 }

@@ -171,20 +171,24 @@ mapping, the synch job ID, the direction, whether the destination is being inser
 
 ### 4.3 Field values: a converter chosen per field mapping
 
-`OnTransferFieldData` is replaced by an explicit choice on each field mapping:
+`OnTransferFieldData` is replaced by an explicit choice per field mapping, stored in this app's table
+`DVI Field Converter` (mapping name + both field numbers, so it survives Microsoft re-creating field mappings) and
+shown on the field mapping list:
 
 ```al
-tableextension 80001 "DVI Integration Field Mapping" extends "Integration Field Mapping"
+enum 80004 "DVI Value Converter" implements "DVI IValueConverter"   // AppliesTo, Convert
 {
-    fields
-    {
-        field(80000; "DVI Value Converter"; Enum "DVI Value Converter")   // Direct (default), Owner Id,
-    }                                                                      // Coupled Primary Key, Option Value,
-}                                                                          // Currency Code, Unit Group, ...
+    Extensible = true;
+    value(0; DVIDirect) { }            value(10; DVIOwner) { }       value(20; DVIPrimaryContact) { }
+    value(30; DVICurrency) { }         value(40; DVIUnitOfMeasure) { }
+    value(50; DVIOptionValue) { }      value(60; DVICoupledRecordKey) { }
+}
 ```
 
-The value of a field is computed by exactly one converter, the one set on its field mapping. There is no ordering
-between modules and no "first subscriber wins". A partner adds a converter as an enum value.
+The value of a field is computed by exactly one converter. There is no ordering between modules and no "first
+subscriber wins". When a mapping is switched, each field mapping gets the first converter whose `AppliesTo` accepts
+the field pair (specific converters have lower ordinals than *Coupled record key*); a partner adds a converter as an
+enum value and it takes part in that choice. Details in `FEAT-DVI-003-ValueConverters/`.
 
 ### 4.4 Rules the implementations follow
 
@@ -302,7 +306,7 @@ Each feature is a `FEAT-DVI-<n>` folder under `app/docs/` and ships as its own p
 |---|---|---|
 | FEAT-DVI-001 Core pipeline | Takeover proxies, `DVI Sync Handler` and `DVI Integration Module` enums, interfaces, `DVI Sync Context`, the pipeline (find/couple, direction, transfer through field mappings, insert/modify, conflicts, job log), generic handler, **option mappings** (Payment Terms, Shipment Method, Shipping Agent), `DVI Mapping Name` on couplings, switch action on *Integration Table Mappings*, this app's own *Use Default Synchronization Setup* that resets mappings to this app's handlers | 80000–80199 |
 | FEAT-DVI-002 UI framework | The UI interfaces, `DVI Record Actions` facade, record-to-mapping resolution by coupling, *CRM Redirect* takeover (couple or create when not coupled), pilot on Customer Card and Customer List | 80000–80199, 80200–80201 |
-| FEAT-DVI-003 Value converters | Owner Id, coupled primary key, option values, currency, unit group, clear-on-failure; replaces `OnTransferFieldData` | 80000–80199 |
+| FEAT-DVI-003 Value converters | Owner, primary contact, currency, unit of measure, option value, coupled record key (with clear-on-failure), stored per field mapping and assigned on switch; replaces `OnTransferFieldData` | 80000–80199 |
 | FEAT-DVI-004 CDS | Handlers for Customer/Vendor ↔ Account, Contact ↔ Contact, Currency, Systemuser → Salesperson, Product → Item, option mappings; page extensions for their cards and lists | 80200–80399 |
 | FEAT-DVI-005 CRM | Handlers for sales orders and invoices (totals, VAT rounding, lines as follow-ups), price lists, products and units, opportunities, statistics; page extensions for documents, price lists, items, resources and the Dataverse-side lists | 80400–80799 |
 | FEAT-DVI-006 Field Service | Handlers for project tasks, work order products/services, customer assets, bookable resources, service orders, consumption posting as a follow-up; page extensions for the service, project, resource and location pages | 80800–81199 |

@@ -16,6 +16,9 @@ permissionset 80000 "DVI Full"
         table "DVI Mapping Assignment" = X,
         page "DVI Setup" = X,
         page "DVI Mapping Assignments" = X,
+        tabledata "DVI Field Converter" = RIMD,
+        table "DVI Field Converter" = X,
+        page "DVI Field Converters" = X,
         codeunit "DVI Service Locator" = X,
         codeunit "DVI Feature Mgt." = X,
         codeunit "DVI App Area Subscriber" = X,
@@ -50,5 +53,13 @@ permissionset 80000 "DVI Full"
         codeunit "DVI Record Actions" = X,
         codeunit "DVI UI Events" = X,
         codeunit "DVI Redirect" = X,
-        codeunit "DVI Record Lookup" = X;
+        codeunit "DVI Record Lookup" = X,
+        codeunit "DVI Direct Converter" = X,
+        codeunit "DVI Owner Converter" = X,
+        codeunit "DVI Primary Contact Converter" = X,
+        codeunit "DVI Currency Converter" = X,
+        codeunit "DVI Unit of Measure Converter" = X,
+        codeunit "DVI Option Value Converter" = X,
+        codeunit "DVI Coupled Key Converter" = X,
+        codeunit "DVI Converter Assignment" = X;
 }

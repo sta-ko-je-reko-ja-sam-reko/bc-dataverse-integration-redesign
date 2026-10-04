@@ -215,7 +215,7 @@ codeunit 80007 "DVI Record Synch."
         Context.SetDestinationInserted(SynchAction = SynchAction::DVIInsert);
         RecordSync.BeforeTransferFields(Context, SourceRecordRef, DestinationRecordRef);
         CDSTransformationRuleMgt.ApplyTransformations(SourceRecordRef, DestinationRecordRef, IntegrationTableMapping);
-        FieldTransfer.TransferFields(SourceRecordRef, DestinationRecordRef, SynchAction <> SynchAction::DVIInsert);
+        FieldTransfer.TransferFields(Context, SourceRecordRef, DestinationRecordRef, SynchAction <> SynchAction::DVIInsert);
         if BothModified and FieldTransfer.WasBidirectionalFieldModified() then
             exit(ResolveUpdateConflict());
         RecordSync.AfterTransferFields(Context, SourceRecordRef, DestinationRecordRef, AdditionalFieldsModified);

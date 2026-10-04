@@ -21,6 +21,7 @@ codeunit 84014 "DVI Field Transfer Tests"
         TempCustomer: Record Customer temporary;
         TempCRMAccount: Record "CRM Account" temporary;
         FieldTransfer: Codeunit "DVI Field Transfer";
+        Context: Codeunit "DVI Sync Context";
         SourceRecordRef: RecordRef;
         DestinationRecordRef: RecordRef;
     begin
@@ -32,7 +33,7 @@ codeunit 84014 "DVI Field Transfer Tests"
 
         // [WHEN] The fields are transferred to a new account
         Assert.IsTrue(FieldTransfer.LoadFieldMappings(GetMapping(), true), 'Field mappings must load.');
-        FieldTransfer.TransferFields(SourceRecordRef, DestinationRecordRef, false);
+        FieldTransfer.TransferFields(Context, SourceRecordRef, DestinationRecordRef, false);
 
         // [THEN] The account gets the name
         Assert.AreEqual('Contoso', Format(DestinationRecordRef.Field(TempCRMAccount.FieldNo(Name)).Value()), 'Account name');
@@ -45,6 +46,7 @@ codeunit 84014 "DVI Field Transfer Tests"
         TempCustomer: Record Customer temporary;
         TempCRMAccount: Record "CRM Account" temporary;
         FieldTransfer: Codeunit "DVI Field Transfer";
+        Context: Codeunit "DVI Sync Context";
         SourceRecordRef: RecordRef;
         DestinationRecordRef: RecordRef;
     begin
@@ -57,7 +59,7 @@ codeunit 84014 "DVI Field Transfer Tests"
 
         // [WHEN] Only modified fields are transferred
         FieldTransfer.LoadFieldMappings(GetMapping(), true);
-        FieldTransfer.TransferFields(SourceRecordRef, DestinationRecordRef, true);
+        FieldTransfer.TransferFields(Context, SourceRecordRef, DestinationRecordRef, true);
 
         // [THEN] Nothing is reported as modified
         Assert.IsFalse(FieldTransfer.WasModified(), 'An equal value must not count as a change.');
@@ -69,6 +71,7 @@ codeunit 84014 "DVI Field Transfer Tests"
         TempCustomer: Record Customer temporary;
         TempCRMAccount: Record "CRM Account" temporary;
         FieldTransfer: Codeunit "DVI Field Transfer";
+        Context: Codeunit "DVI Sync Context";
         SourceRecordRef: RecordRef;
         DestinationRecordRef: RecordRef;
         SourceFieldNo: Integer;
@@ -83,7 +86,7 @@ codeunit 84014 "DVI Field Transfer Tests"
 
         // [WHEN] Only modified fields are transferred
         FieldTransfer.LoadFieldMappings(GetMapping(), true);
-        FieldTransfer.TransferFields(SourceRecordRef, DestinationRecordRef, true);
+        FieldTransfer.TransferFields(Context, SourceRecordRef, DestinationRecordRef, true);
 
         // [THEN] The bidirectional change and its fields are reported
         Assert.IsTrue(FieldTransfer.WasBidirectionalFieldModified(), 'A bidirectional field changed.');
@@ -98,6 +101,7 @@ codeunit 84014 "DVI Field Transfer Tests"
         TempCustomer: Record Customer temporary;
         TempCRMAccount: Record "CRM Account" temporary;
         FieldTransfer: Codeunit "DVI Field Transfer";
+        Context: Codeunit "DVI Sync Context";
         SourceRecordRef: RecordRef;
         DestinationRecordRef: RecordRef;
     begin
@@ -108,7 +112,7 @@ codeunit 84014 "DVI Field Transfer Tests"
 
         // [WHEN] The fields are transferred to a new account
         FieldTransfer.LoadFieldMappings(GetMapping(), true);
-        FieldTransfer.TransferFields(SourceRecordRef, DestinationRecordRef, false);
+        FieldTransfer.TransferFields(Context, SourceRecordRef, DestinationRecordRef, false);
 
         // [THEN] The account gets the constant
         Assert.AreEqual('+381 11 000 000', Format(DestinationRecordRef.Field(TempCRMAccount.FieldNo(Telephone1)).Value()), 'Constant value');

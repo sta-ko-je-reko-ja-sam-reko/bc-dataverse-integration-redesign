@@ -9,6 +9,7 @@
 | `privacy.md` | What the app stores and sends |
 | `FEAT-DVI-001-CorePipeline/` | The takeover, the engine, option and coupling jobs, the mapping switch |
 | `FEAT-DVI-002-UIFramework/` | Action interfaces, record actions facade, CRM Redirect takeover, Customer pilot pages |
+| `FEAT-DVI-003-ValueConverters/` | One converter per field mapping instead of `OnTransferFieldData` |
 | `FEAT-DVI-<n>-<Title>/` | One folder per feature: technical documentation, test plans, getting started |
 
 The app supports English only (`supportedLocales` en-US), so each feature has an English getting-started guide and no
