@@ -1,13 +1,15 @@
-namespace DataverseIntegration.CRM;
+namespace DataverseIntegration.FieldService;
 
 using DataverseIntegration.CDS;
 using DataverseIntegration.Core;
-using DataverseIntegration.FieldService;
 using Microsoft.Integration.D365Sales;
+using Microsoft.Integration.Dataverse;
+using Microsoft.Integration.DynamicsFieldService;
 using Microsoft.Integration.SyncEngine;
-using Microsoft.Sales.History;
+using Microsoft.Inventory.Item;
+using Microsoft.Service.Item;
 
-codeunit 80409 "DVI Invoice Handler" implements "DVI IRecordSync", "DVI IRecordCoupling", "DVI IRecordFilter", "DVI IHandlerScope", "DVI IRecordCompletion"
+codeunit 80811 "DVI Customer Asset Handler" implements "DVI IRecordSync", "DVI IRecordCoupling", "DVI IRecordFilter", "DVI IHandlerScope"
 {
     Access = Public;
 
@@ -16,21 +18,22 @@ codeunit 80409 "DVI Invoice Handler" implements "DVI IRecordSync", "DVI IRecordC
         IntegrationTableMapping: Record "Integration Table Mapping";
     begin
         Context.GetMapping(IntegrationTableMapping);
-        exit((IntegrationTableMapping."Table ID" = Database::"Sales Invoice Header") and (IntegrationTableMapping."Integration Table ID" = Database::"CRM Invoice"));
+        exit((IntegrationTableMapping."Table ID" = Database::"Service Item") and (IntegrationTableMapping."Integration Table ID" = Database::"FS Customer Asset"));
     end;
 
     procedure DefaultModule(var Context: Codeunit "DVI Sync Context"): Enum "DVI Integration Module"
     begin
-        exit(Enum::"DVI Integration Module"::DVISales);
+        exit(Enum::"DVI Integration Module"::DVIFieldService);
     end;
 
     procedure IgnoreRecord(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef): Boolean
     var
-        CRMInvoices: Codeunit "DVI CRM Invoices";
+        ServiceItem: Record "Service Item";
     begin
-        if SourceRecordRef.Number() <> Database::"Sales Invoice Header" then
+        if SourceRecordRef.Number() <> Database::"Service Item" then
             exit(false);
-        exit(CRMInvoices.IsReadOnly(SourceRecordRef));
+        SourceRecordRef.SetTable(ServiceItem);
+        exit(IsExcludedByProduct(ServiceItem));
     end;
 
     procedure BeforeTransferFields(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
@@ -44,33 +47,22 @@ codeunit 80409 "DVI Invoice Handler" implements "DVI IRecordSync", "DVI IRecordC
 
     procedure BeforeInsert(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
     var
-        CRMInvoices: Codeunit "DVI CRM Invoices";
-    begin
-        if not Context.IsToIntegrationTable() then
-            exit;
-        CRMInvoices.CheckLines(Context, SourceRecordRef);
-        CRMInvoices.PrepareInvoice(Context, SourceRecordRef, DestinationRecordRef);
-    end;
-
-    procedure AfterInsert(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
-    var
-        SalesInvoiceHeader: Record "Sales Invoice Header";
-        CRMInvoices: Codeunit "DVI CRM Invoices";
-        FSProjects: Codeunit "DVI FS Projects";
-    begin
-        if not Context.IsToIntegrationTable() then
-            exit;
-        CRMInvoices.QueueLinesAndTotals(Context, SourceRecordRef);
-        SourceRecordRef.SetTable(SalesInvoiceHeader);
-        FSProjects.WriteBackInvoicedQuantities(SalesInvoiceHeader);
-    end;
-
-    procedure BeforeModify(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
-    var
         CDSCompany: Codeunit "DVI CDS Company";
     begin
         if Context.IsToIntegrationTable() then
             CDSCompany.SetCompanyId(DestinationRecordRef);
+    end;
+
+    procedure AfterInsert(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
+    var
+        FSRecords: Codeunit "DVI FS Records";
+    begin
+        if not Context.IsToIntegrationTable() then
+            FSRecords.StampCompanyOnSource(SourceRecordRef);
+    end;
+
+    procedure BeforeModify(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
+    begin
     end;
 
     procedure AfterModify(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
@@ -79,14 +71,6 @@ codeunit 80409 "DVI Invoice Handler" implements "DVI IRecordSync", "DVI IRecordC
 
     procedure Unchanged(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
     begin
-    end;
-
-    procedure Complete(var Context: Codeunit "DVI Sync Context"; var LocalRecordRef: RecordRef; var IntegrationRecordRef: RecordRef)
-    var
-        CRMInvoices: Codeunit "DVI CRM Invoices";
-    begin
-        if Context.IsToIntegrationTable() and Context.IsDestinationInserted() then
-            CRMInvoices.CompleteInvoice(LocalRecordRef, IntegrationRecordRef);
     end;
 
     procedure FindUncoupledDestination(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef; var DestinationIsDeleted: Boolean): Boolean
@@ -121,5 +105,30 @@ codeunit 80409 "DVI Invoice Handler" implements "DVI IRecordSync", "DVI IRecordC
     begin
         Context.GetMapping(IntegrationTableMapping);
         exit(IntegrationTableMapping."Create New in Case of No Match");
+    end;
+
+    /// <summary>
+    /// Returns whether an uncoupled service item is left out because the Dataverse product of its item must not become a customer asset.
+    /// </summary>
+    /// <param name="ServiceItem">The service item.</param>
+    /// <returns>True when the service item is not coupled and its item's product has Convert to Customer Asset off.</returns>
+    procedure IsExcludedByProduct(ServiceItem: Record "Service Item"): Boolean
+    var
+        Item: Record Item;
+        CRMProduct: Record "CRM Product";
+        CRMIntegrationRecord: Record "CRM Integration Record";
+        ProductId: Guid;
+    begin
+        if ServiceItem."Item No." = '' then
+            exit(false);
+        if CRMIntegrationRecord.IsRecordCoupled(ServiceItem.RecordId()) then
+            exit(false);
+        if not Item.Get(ServiceItem."Item No.") then
+            exit(false);
+        if not CRMIntegrationRecord.FindIDFromRecordID(Item.RecordId(), ProductId) then
+            exit(false);
+        if not CRMProduct.Get(ProductId) then
+            exit(false);
+        exit(not CRMProduct.ConvertToCustomerAsset);
     end;
 }

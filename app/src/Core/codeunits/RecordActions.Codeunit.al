@@ -30,6 +30,16 @@ codeunit 80033 "DVI Record Actions"
     /// </summary>
     /// <param name="RecordId">The record the page shows.</param>
     procedure Refresh(RecordId: RecordId)
+    begin
+        Refresh(RecordId, 0);
+    end;
+
+    /// <summary>
+    /// Resolves the mapping to one Dataverse table, the coupling to that table and the handler of the record a page shows, and computes which actions are available. Used where a table has mappings to several Dataverse tables, such as resources to products and to bookable resources.
+    /// </summary>
+    /// <param name="RecordId">The record the page shows.</param>
+    /// <param name="IntegrationTableId">The Dataverse table of the mapping, or 0 for any.</param>
+    procedure Refresh(RecordId: RecordId; IntegrationTableId: Integer)
     var
         IntegrationTableMapping: Record "Integration Table Mapping";
         FeatureMgt: Codeunit "DVI Feature Mgt.";
@@ -41,7 +51,7 @@ codeunit 80033 "DVI Record Actions"
         Active := FeatureMgt.IsEnabled();
         if not Active then
             exit;
-        if not RecordMappingResolver.Resolve(RecordId, Context) then
+        if not RecordMappingResolver.Resolve(RecordId, IntegrationTableId, Context) then
             exit;
         Context.GetMapping(IntegrationTableMapping);
         Handler := MappingResolver.GetHandler(IntegrationTableMapping);

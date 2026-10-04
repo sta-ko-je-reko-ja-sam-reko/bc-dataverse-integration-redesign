@@ -2,9 +2,10 @@ namespace DataverseIntegration.Core;
 
 using Microsoft.Integration.Dataverse;
 using Microsoft.Integration.SyncEngine;
+using Microsoft.Utilities;
 using System.Reflection;
 
-codeunit 80032 "DVI Standard Record Actions" implements "DVI IIntegrationRecordView", "DVI ISynchronizeAction", "DVI ICouplingAction", "DVI ICreateAction", "DVI ISynchLogView", "DVI IStatisticsAction"
+codeunit 80032 "DVI Standard Record Actions" implements "DVI IIntegrationRecordView", "DVI ISynchronizeAction", "DVI ICouplingAction", "DVI ICreateAction", "DVI ISynchLogView", "DVI IStatisticsAction", "DVI ILocalRecordView"
 {
     Access = Public;
 
@@ -148,6 +149,17 @@ codeunit 80032 "DVI Standard Record Actions" implements "DVI IIntegrationRecordV
 
     procedure UpdateStatistics(var Context: Codeunit "DVI Record Action Context")
     begin
+    end;
+
+    procedure OpenLocalRecord(IntegrationTableMapping: Record "Integration Table Mapping"; IntegrationId: Guid): Boolean
+    var
+        CRMIntegrationRecord: Record "CRM Integration Record";
+        PageManagement: Codeunit "Page Management";
+        LocalRecordId: RecordId;
+    begin
+        if not CRMIntegrationRecord.FindRecordIDFromID(IntegrationId, IntegrationTableMapping."Table ID", LocalRecordId) then
+            exit(false);
+        exit(PageManagement.PageRun(LocalRecordId));
     end;
 
     local procedure CollectCoupledRecords(var SelectedRecordRef: RecordRef; var SystemIds: List of [Guid]; var IntegrationIds: List of [Guid])

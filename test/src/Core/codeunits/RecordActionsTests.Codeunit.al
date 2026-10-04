@@ -121,7 +121,7 @@ codeunit 84015 "DVI Record Actions Tests"
         CRMIntegrationRecord.Insert(false);
 
         // [WHEN] The customer's actions are resolved
-        Assert.IsTrue(RecordMappingResolver.Resolve(Customer.RecordId(), Context), 'A mapping must be found.');
+        Assert.IsTrue(RecordMappingResolver.Resolve(Customer.RecordId(), 0, Context), 'A mapping must be found.');
 
         // [THEN] The mapping stamped on the coupling is used, not the first mapping of the table
         Context.GetMapping(IntegrationTableMapping);

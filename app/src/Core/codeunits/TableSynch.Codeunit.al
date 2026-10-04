@@ -82,6 +82,7 @@ codeunit 80006 "DVI Table Synch." implements "DVI ITableSynch"
         JobLog: Codeunit "DVI Synch. Job Log";
         SourceRecordRef: RecordRef;
         FailedIds: Dictionary of [Guid, Boolean];
+        ProcessedIds: Dictionary of [Guid, Boolean];
         SystemId: Guid;
         JobId: Guid;
         JobStartedAt: DateTime;
@@ -96,13 +97,19 @@ codeunit 80006 "DVI Table Synch." implements "DVI ITableSynch"
         SourceRecordRef.Open(IntegrationTableMapping."Table ID");
         if FindFailedLocalRecords(IntegrationTableMapping, FailedIds) then
             foreach SystemId in FailedIds.Keys() do
-                if SourceRecordRef.GetBySystemId(SystemId) then
+                if SourceRecordRef.GetBySystemId(SystemId) then begin
+                    ProcessedIds.Set(SystemId, true);
                     SynchSourceRecord(IntegrationTableMapping, RecordSynch, SourceRecordRef, JobId, LatestModifiedOn);
+                end;
         if FindModifiedLocalRecords(IntegrationTableMapping, SourceRecordRef) then
             repeat
-                if not FailedIds.ContainsKey(SourceRecordRef.Field(SourceRecordRef.SystemIdNo()).Value()) then
+                SystemId := SourceRecordRef.Field(SourceRecordRef.SystemIdNo()).Value();
+                if not ProcessedIds.ContainsKey(SystemId) then begin
+                    ProcessedIds.Set(SystemId, true);
                     SynchSourceRecord(IntegrationTableMapping, RecordSynch, SourceRecordRef, JobId, LatestModifiedOn);
+                end;
             until SourceRecordRef.Next() = 0;
+        SynchIndirectlyChanged(IntegrationTableMapping, RecordSynch, JobId, ProcessedIds, LatestModifiedOn);
         SourceRecordRef.Close();
         JobLog.FinishJob(JobId, '');
         CRMFullSynchReviewLine.FullSynchFinished(IntegrationTableMapping, IntegrationTableMapping.Direction::ToIntegrationTable);
@@ -255,6 +262,32 @@ codeunit 80006 "DVI Table Synch." implements "DVI ITableSynch"
             if LocalRecordRef.Field(PrimaryKeyRef.FieldIndex(FieldIndex).Number()).GetFilter() = '' then
                 exit(true);
         exit(false);
+    end;
+
+    local procedure SynchIndirectlyChanged(var IntegrationTableMapping: Record "Integration Table Mapping"; var RecordSynch: Codeunit "DVI Record Synch."; JobId: Guid; var ProcessedIds: Dictionary of [Guid, Boolean]; var LatestModifiedOn: DateTime)
+    var
+        Context: Codeunit "DVI Sync Context";
+        MappingResolver: Codeunit "DVI Mapping Resolver";
+        SourceRecordRef: RecordRef;
+        ChangeDetection: Interface "DVI IChangeDetection";
+        ChangedIds: List of [Guid];
+        SystemId: Guid;
+    begin
+        Context.SetMapping(IntegrationTableMapping);
+        Context.SetJobId(JobId);
+        Context.SetToIntegrationTable(true);
+        ChangeDetection := MappingResolver.GetHandler(IntegrationTableMapping);
+        ChangeDetection.FindIndirectlyChanged(Context, IntegrationTableMapping."Synch. Modified On Filter", ChangedIds);
+        if ChangedIds.Count() = 0 then
+            exit;
+        SourceRecordRef.Open(IntegrationTableMapping."Table ID");
+        foreach SystemId in ChangedIds do
+            if not ProcessedIds.ContainsKey(SystemId) then
+                if SourceRecordRef.GetBySystemId(SystemId) then begin
+                    ProcessedIds.Set(SystemId, true);
+                    SynchSourceRecord(IntegrationTableMapping, RecordSynch, SourceRecordRef, JobId, LatestModifiedOn);
+                end;
+        SourceRecordRef.Close();
     end;
 
     local procedure FindModifiedLocalRecords(IntegrationTableMapping: Record "Integration Table Mapping"; var SourceRecordRef: RecordRef): Boolean

@@ -200,6 +200,8 @@ enum value and it takes part in that choice. Details in `FEAT-DVI-003-ValueConve
   (`AddCompletion`, `DVI IRecordCompletion`) runs for the record itself after all its follow-ups, for work that needs
   them done, such as a document's totals after its lines; the coupling is re-stamped afterwards, so these changes are
   not seen as edits in the next run.
+- **Indirect changes.** A handler can add records that changed only through related records to the outbound run
+  (`DVI IChangeDetection`), such as service orders whose lines changed.
 - **No posting inside a step.** Field Service consumption that Microsoft posts from an engine event becomes a
   follow-up action, with its own implementation that a partner can replace.
 - **Guards in one place.** The pipeline asks `DVI IConnection.IsEnabled` once per run; steps never check enablement.
@@ -236,6 +238,7 @@ synchronizes.
 | `DVI ISynchLogView` | *Synchronization Log*, synch errors, skipped records | Always |
 | `DVI IStatisticsAction` (FEAT-DVI-005) | *Update Account Statistics* and the statistics factbox | Customer ↔ Account in the Dynamics 365 Sales module |
 | `DVI IRedirectTarget` | The *CRM Redirect* page: a link from Dataverse opens the coupled Business Central record | See below |
+| `DVI ILocalRecordView` (FEAT-DVI-006) | The record a *CRM Redirect* link opens, per handler | The coupled record's card; work orders open the service order or its archive |
 | `DVI IIntegrationLookup` (when a handler needs it) | Lookups to Dataverse records in the coupling dialog | Always; until then Microsoft's lookup applies |
 
 - **Availability is part of each interface** (`IsAvailable(Context)`), computed from the mapping, its direction and
@@ -314,7 +317,7 @@ Each feature is a `FEAT-DVI-<n>` folder under `app/docs/` and ships as its own p
 | FEAT-DVI-004 CDS | Handlers for Customer/Vendor ↔ Account, Contact ↔ Contact, Currency ↔ Transaction Currency, Salesperson ↔ User; page extensions for their cards and lists (Product → Item moves to FEAT-DVI-005 with the item handler) | 80200–80399 |
 | FEAT-DVI-005a CRM products and prices | Handlers for products, unit groups and units, price lists and prices, opportunities, the option sets of sales documents; prerequisites on `DVI Sync Context`; `DVI IStatisticsAction`; page extensions for items, resources, price groups, price lists and opportunities | 80400–80799 |
 | FEAT-DVI-005b CRM sales documents | Handlers for sales orders and invoices (totals, VAT rounding, lines as follow-ups); page extensions for documents and the Dataverse-side lists | 80400–80799 |
-| FEAT-DVI-006 Field Service | Handlers for project tasks, work order products/services, customer assets, bookable resources, service orders, consumption posting as a follow-up; page extensions for the service, project, resource and location pages | 80800–81199 |
+| FEAT-DVI-006 Field Service | Handlers for bookable resources, customer assets, warehouses, work order types, project tasks, project journal lines (posting as a completion step), service orders with incidents and lines; `DVI FS Value Converter`; `DVI IChangeDetection`, `DVI ILocalRecordView`; this app's Field Service reset; page extensions for the resource, service item, location, service order type, project task and service order pages | 80800–81199 |
 | FEAT-DVI-007 Microsoft defects | Each defect in `analysis/` gets a test proving the redesigned implementation does not have it | per module |
 
 ## 7. Decisions
