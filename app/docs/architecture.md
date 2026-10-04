@@ -39,10 +39,20 @@ does its work inline.
    Service consumption posting, the service-order cascade, status mapping: none of it has an extension point.
 5. **Side effects inside engine events.** Subscribers `Commit()` mid-transaction, call `Sleep(5000)` retries, post
    project journals, and re-enter the engine (`SynchRecordsToIntegrationTable` from inside an engine event).
-6. **Defects the structure hides.** Examples found during the analysis (details in `analysis/subscribers-fs.md`):
+6. **The UI has the same shape.** About 68 pages carry Dataverse actions (*Account*/*Contact*/… to open the
+   coupled record, *Synchronize*, *Set Up Coupling*, *Delete Coupling*, *Synchronization Log*, *Create in
+   Dataverse*, statistics). Their visibility depends only on whether CRM, CDS or Field Service is enabled, never on
+   the mapping's direction; pages find their mapping by hard-coded names (`'CUSTOMER'`, `'ITEM-PRODUCT'`, …) and
+   detect filters by raw strings (`'Field39=1(0)'`); every action calls one fixed procedure of
+   `CRM Integration Management` with no `IsHandled` event. Mappings are picked by table ID and `FindFirst`, and the
+   coupling table `CRM Integration Record` does not store which mapping a coupling belongs to, so Resource
+   (`RESOURCE-PRODUCT` and `RESOURCE-BOOKABLERSC`) always resolves to the Field Service mapping, even from the
+   Dynamics 365 Sales actions. Details in `analysis/ui-and-entry-points.md`.
+7. **Defects the structure hides.** Examples found during the analysis (details in `analysis/subscribers-fs.md`):
    an inverted `if FSConnectionSetup.IsEnabled() then exit;` that makes two Field Service filters run only when
    Field Service is *disabled*; branches that read local records which were never loaded; an empty `SetFilter` that
-   re-synchronizes every booking; a reset that raises the event of a different mapping.
+   re-synchronizes every booking; a reset that raises the event of a different mapping; on the Field Service
+   *Service Item Card* and list, `CRMIsCoupledToRecord` is never assigned, so *Delete Coupling* is always disabled.
 
 ## 2. Design goals
 
@@ -59,6 +69,11 @@ does its work inline.
 - **Opt-in and reversible per mapping.** A mapping not switched to this app behaves exactly as Microsoft ships it.
 - **Testable without Dataverse.** Every step works on records passed as `var` parameters, so tests run on temporary
   records with fake implementations injected.
+
+**Scope: every entry point, not only the runners.** The runners (§3) are the entry point of scheduled
+synchronization and must be covered, but the redesign covers every place in the CDS, CRM and Field Service objects
+where behaviour is hard-wired: the page actions (§4.6), the *CRM Redirect* page, the coupling dialog and lookups,
+the create flows, statistics, full synchronization and the setup-page actions.
 
 ## 3. How the app takes over a mapping
 
@@ -186,6 +201,65 @@ to an implementation resolved through `DVI Service Locator`.
 The service locator also holds the pipeline itself (`DVI ISyncPipeline`), so the whole engine can be replaced for
 tests or by a dependent app (`Implement…` setter, and the `OnResolve…` publisher where no early call site exists).
 
+### 4.6 The UI: one interface per concern, resolved per mapping
+
+Every page that Microsoft gives Dataverse actions (cards, lists, documents, the Dataverse-side lists, the Field
+Service pages) gets a page extension with this app's own action group. The behaviour behind it is not one `IView`
+interface but several, because the concerns are independent: a partner who changes how the coupled record is opened
+should not have to re-implement synchronization or coupling, and a mapping that cannot open a Dataverse record still
+synchronizes.
+
+| Interface | Actions it backs | Default availability |
+|---|---|---|
+| `DVI IIntegrationRecordView` | Open the coupled Dataverse record (*Account*, *Contact*, *Product*, *Work Order*, …) | Record coupled, and mapping direction **Bidirectional** or **To Integration Table** |
+| `DVI ISynchronizeAction` | *Synchronize* for the current record or the selection | Mapping enabled; offers only the directions the mapping allows |
+| `DVI ICouplingAction` | *Set Up Coupling*, *Delete Coupling*, *Match-Based Coupling* | Set up: always; delete: record coupled |
+| `DVI ICreateAction` | *Create in Dataverse* (direction To/Bidirectional), *Create in Business Central* (From/Bidirectional) | By direction |
+| `DVI ISynchLogView` | *Synchronization Log*, synch errors, skipped records | Always |
+| `DVI IStatisticsAction` | *Update Account Statistics* and the statistics factbox | Customer ↔ Account in the Dynamics 365 Sales module |
+| `DVI IRedirectTarget` | The *CRM Redirect* page: a link from Dataverse opens the coupled Business Central record | See below |
+| `DVI IIntegrationLookup` | Lookups to Dataverse records in the coupling dialog | Always |
+
+- **Availability is part of each interface** (`IsAvailable(Context)`), computed from the mapping, its direction and
+  the coupling, never from module flags alone. The defaults above are this app's implementation; a partner changes
+  them per mapping by its own enum value.
+- **The same enum value selects them.** `DVI Sync Handler` implements the UI interfaces as well, so one choice on
+  the mapping decides both how a record synchronizes and what the user can do with it.
+- **Pages stay thin.** A page extension calls one facade (`DVI Record Actions`) in `OnAfterGetCurrRecord`, binds
+  `Visible`/`Enabled` of its actions to the result, and each `OnAction` is a one-line delegation. No mapping names, no
+  filter strings, no `case` on table numbers in a page.
+- **Microsoft's actions are hidden on a switched mapping**, action by action with `modify(...) { Visible = ...; }`.
+  A page extension cannot change an existing trigger, and none of Microsoft's actions has an `IsHandled` event, so
+  hiding and replacing is the only way to stop the old code from running for a switched mapping.
+- **CRM Redirect** keeps Microsoft's page (Dataverse links point to page 5329) and takes over
+  `OnBeforeOpenCoupledNavRecordPage`, which is a full `IsHandled` takeover. `DVI IRedirectTarget` resolves the
+  Dataverse entity to a mapping, the mapping to the coupled record and the record to its page. When the record is not
+  coupled, it can offer to couple or create it: the case Microsoft left as a `TODO` in the page.
+- **Where Microsoft does offer a full takeover event**, this app uses it rather than hiding the action:
+  `OnBeforeOpenCoupledNavRecordPage`, `OnBeforeOpenRecordCardPage`, `OnLookupCRMTables`, `OnLookupCRMOption`,
+  `Integration Table Mapping.OnSynchronizeNow` (setup pages and the mapping list), `OnOpenSourceRecord` /
+  `OnOpenDestinationRecord` (error list). The full list is in `analysis/ui-and-entry-points.md` §D.
+
+### 4.7 Entity improvement: couplings know their mapping
+
+`CRM Integration Record` stores the Business Central record and the Dataverse ID, but not the mapping that created
+the coupling. That is why a table with two mappings (Resource ↔ Product and Resource ↔ Bookable Resource) resolves
+to whichever mapping `FindFirst` returns. This app adds the mapping name to the coupling:
+
+```al
+tableextension 80002 "DVI CRM Integration Record" extends "CRM Integration Record"
+{
+    fields
+    {
+        field(80000; "DVI Mapping Name"; Code[20]) { TableRelation = "Integration Table Mapping".Name; }
+    }
+}
+```
+
+The pipeline sets it when it couples a record; an upgrade step fills it for existing couplings where the table pair
+has exactly one mapping. The UI and the redirect resolve the mapping from the coupling first, and ask the user only
+when a record is not coupled and its table has several mappings.
+
 ## 5. Scope and limits
 
 - **Switched mappings only.** On a mapping left on `Microsoft`, nothing changes.
@@ -206,12 +280,13 @@ Each feature is a `FEAT-DVI-<n>` folder under `app/docs/` and ships as its own p
 
 | Feature | Content | Object IDs |
 |---|---|---|
-| FEAT-DVI-001 Core pipeline | Takeover proxies, `DVI Sync Handler` and `DVI Integration Module` enums, interfaces, `DVI Sync Context`, the pipeline (find/couple, direction, transfer through field mappings, insert/modify, conflicts, job log), generic handler, switch action on *Integration Table Mappings* | 80000–80199 |
-| FEAT-DVI-002 Value converters | Owner Id, coupled primary key, option values, currency, unit group, clear-on-failure; replaces `OnTransferFieldData` | 80000–80199 |
-| FEAT-DVI-003 CDS handlers | Customer/Vendor ↔ Account, Contact ↔ Contact, Currency, Systemuser → Salesperson, Product → Item, option mappings | 80200–80399 |
-| FEAT-DVI-004 CRM handlers | Sales orders and invoices (totals, VAT rounding, lines as follow-ups), price lists, products and units, opportunities, statistics | 80400–80799 |
-| FEAT-DVI-005 Field Service handlers | Project tasks, work order products/services, customer assets, bookable resources, service orders; consumption posting as a follow-up | 80800–81199 |
-| FEAT-DVI-006 Microsoft defects | Each defect in `analysis/` gets a test proving the redesigned handler does not have it | per module |
+| FEAT-DVI-001 Core pipeline | Takeover proxies, `DVI Sync Handler` and `DVI Integration Module` enums, interfaces, `DVI Sync Context`, the pipeline (find/couple, direction, transfer through field mappings, insert/modify, conflicts, job log), generic handler, `DVI Mapping Name` on couplings, switch action on *Integration Table Mappings* | 80000–80199 |
+| FEAT-DVI-002 UI framework | The UI interfaces, `DVI Record Actions` facade, *CRM Redirect* takeover, coupling dialog lookups, setup-page and mapping-list actions, error-list navigation | 80000–80199 |
+| FEAT-DVI-003 Value converters | Owner Id, coupled primary key, option values, currency, unit group, clear-on-failure; replaces `OnTransferFieldData` | 80000–80199 |
+| FEAT-DVI-004 CDS | Handlers for Customer/Vendor ↔ Account, Contact ↔ Contact, Currency, Systemuser → Salesperson, Product → Item, option mappings; page extensions for their cards and lists | 80200–80399 |
+| FEAT-DVI-005 CRM | Handlers for sales orders and invoices (totals, VAT rounding, lines as follow-ups), price lists, products and units, opportunities, statistics; page extensions for documents, price lists, items, resources and the Dataverse-side lists | 80400–80799 |
+| FEAT-DVI-006 Field Service | Handlers for project tasks, work order products/services, customer assets, bookable resources, service orders, consumption posting as a follow-up; page extensions for the service, project, resource and location pages | 80800–81199 |
+| FEAT-DVI-007 Microsoft defects | Each defect in `analysis/` gets a test proving the redesigned implementation does not have it | per module |
 
 ## 7. Decisions still open
 
@@ -219,4 +294,9 @@ Each feature is a `FEAT-DVI-<n>` folder under `app/docs/` and ships as its own p
    `FS Setup Defaults` reset behaviour, or this app owns resetting its handlers.
 2. **Option mappings** (`Int. Option Synch. Invoke`) run through the same `OnBeforeRun`; whether FEAT-DVI-001 covers
    them or they follow in FEAT-DVI-002.
-3. **Multi-company synch** (`Multi Company Synch. Enabled`) is in scope only after FEAT-DVI-003.
+3. **Multi-company synch** (`Multi Company Synch. Enabled`) is in scope only after FEAT-DVI-004.
+4. **Hiding by direction**: whether the whole action group disappears on a `From Integration Table` mapping, or only
+   the actions that push to or open Dataverse (*Open*, *Create in Dataverse*) while *Synchronize* (pull), *Coupling*
+   and the log stay.
+5. **Pages of unswitched mappings**: whether this app's action group also replaces Microsoft's on mappings left on
+   `Microsoft` (uniform UI everywhere), or appears only for switched mappings.
