@@ -1,6 +1,7 @@
 namespace DataverseIntegration.Core;
 
 using DataverseIntegration.CRM;
+using DataverseIntegration.FieldService;
 
 enum 80004 "DVI Value Converter" implements "DVI IValueConverter"
 {
@@ -12,6 +13,11 @@ enum 80004 "DVI Value Converter" implements "DVI IValueConverter"
     {
         Caption = 'Direct';
         Implementation = "DVI IValueConverter" = "DVI Direct Converter";
+    }
+    value(5; DVIFieldServiceValue)
+    {
+        Caption = 'Field Service value';
+        Implementation = "DVI IValueConverter" = "DVI FS Value Converter";
     }
     value(10; DVIOwner)
     {

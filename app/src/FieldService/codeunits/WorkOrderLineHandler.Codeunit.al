@@ -1,13 +1,12 @@
-namespace DataverseIntegration.CRM;
+namespace DataverseIntegration.FieldService;
 
 using DataverseIntegration.CDS;
 using DataverseIntegration.Core;
-using DataverseIntegration.FieldService;
-using Microsoft.Integration.D365Sales;
+using Microsoft.Integration.DynamicsFieldService;
 using Microsoft.Integration.SyncEngine;
-using Microsoft.Sales.History;
+using Microsoft.Service.Document;
 
-codeunit 80409 "DVI Invoice Handler" implements "DVI IRecordSync", "DVI IRecordCoupling", "DVI IRecordFilter", "DVI IHandlerScope", "DVI IRecordCompletion"
+codeunit 80818 "DVI Work Order Line Handler" implements "DVI IRecordSync", "DVI IRecordCoupling", "DVI IRecordFilter", "DVI IHandlerScope"
 {
     Access = Public;
 
@@ -16,61 +15,63 @@ codeunit 80409 "DVI Invoice Handler" implements "DVI IRecordSync", "DVI IRecordC
         IntegrationTableMapping: Record "Integration Table Mapping";
     begin
         Context.GetMapping(IntegrationTableMapping);
-        exit((IntegrationTableMapping."Table ID" = Database::"Sales Invoice Header") and (IntegrationTableMapping."Integration Table ID" = Database::"CRM Invoice"));
+        exit((IntegrationTableMapping."Table ID" = Database::"Service Line") and
+          (IntegrationTableMapping."Integration Table ID" in [Database::"FS Work Order Product", Database::"FS Work Order Service", Database::"FS Bookable Resource Booking"]));
     end;
 
     procedure DefaultModule(var Context: Codeunit "DVI Sync Context"): Enum "DVI Integration Module"
     begin
-        exit(Enum::"DVI Integration Module"::DVISales);
+        exit(Enum::"DVI Integration Module"::DVIFieldService);
     end;
 
     procedure IgnoreRecord(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef): Boolean
     var
-        CRMInvoices: Codeunit "DVI CRM Invoices";
+        FSServiceOrders: Codeunit "DVI FS Service Orders";
     begin
-        if SourceRecordRef.Number() <> Database::"Sales Invoice Header" then
-            exit(false);
-        exit(CRMInvoices.IsReadOnly(SourceRecordRef));
+        exit(FSServiceOrders.IgnoreLine(SourceRecordRef));
     end;
 
     procedure BeforeTransferFields(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
+    var
+        FSServiceOrders: Codeunit "DVI FS Service Orders";
     begin
+        if not Context.IsToIntegrationTable() then
+            FSServiceOrders.SetUpLine(SourceRecordRef, DestinationRecordRef);
     end;
 
     procedure AfterTransferFields(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef; var AdditionalFieldsModified: Boolean)
+    var
+        FSServiceOrders: Codeunit "DVI FS Service Orders";
     begin
-        AdditionalFieldsModified := false;
+        if Context.IsToIntegrationTable() and (DestinationRecordRef.Number() = Database::"FS Bookable Resource Booking") then begin
+            AdditionalFieldsModified := false;
+            exit;
+        end;
+        FSServiceOrders.UpdateQuantities(SourceRecordRef, DestinationRecordRef, Context.IsToIntegrationTable());
+        AdditionalFieldsModified := true;
     end;
 
     procedure BeforeInsert(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
     var
-        CRMInvoices: Codeunit "DVI CRM Invoices";
+        FSServiceOrders: Codeunit "DVI FS Service Orders";
     begin
-        if not Context.IsToIntegrationTable() then
+        if not Context.IsToIntegrationTable() then begin
+            if SourceRecordRef.Number() = Database::"FS Bookable Resource Booking" then
+                FSServiceOrders.AssignBookingItemLine(DestinationRecordRef);
             exit;
-        CRMInvoices.CheckLines(Context, SourceRecordRef);
-        CRMInvoices.PrepareInvoice(Context, SourceRecordRef, DestinationRecordRef);
+        end;
+        if DestinationRecordRef.Number() in [Database::"FS Work Order Product", Database::"FS Work Order Service"] then begin
+            FSServiceOrders.SetCompanyId(DestinationRecordRef);
+            FSServiceOrders.SetWorkOrderOfLine(SourceRecordRef, DestinationRecordRef);
+        end;
     end;
 
     procedure AfterInsert(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
-    var
-        SalesInvoiceHeader: Record "Sales Invoice Header";
-        CRMInvoices: Codeunit "DVI CRM Invoices";
-        FSProjects: Codeunit "DVI FS Projects";
     begin
-        if not Context.IsToIntegrationTable() then
-            exit;
-        CRMInvoices.QueueLinesAndTotals(Context, SourceRecordRef);
-        SourceRecordRef.SetTable(SalesInvoiceHeader);
-        FSProjects.WriteBackInvoicedQuantities(SalesInvoiceHeader);
     end;
 
     procedure BeforeModify(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
-    var
-        CDSCompany: Codeunit "DVI CDS Company";
     begin
-        if Context.IsToIntegrationTable() then
-            CDSCompany.SetCompanyId(DestinationRecordRef);
     end;
 
     procedure AfterModify(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
@@ -79,14 +80,6 @@ codeunit 80409 "DVI Invoice Handler" implements "DVI IRecordSync", "DVI IRecordC
 
     procedure Unchanged(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
     begin
-    end;
-
-    procedure Complete(var Context: Codeunit "DVI Sync Context"; var LocalRecordRef: RecordRef; var IntegrationRecordRef: RecordRef)
-    var
-        CRMInvoices: Codeunit "DVI CRM Invoices";
-    begin
-        if Context.IsToIntegrationTable() and Context.IsDestinationInserted() then
-            CRMInvoices.CompleteInvoice(LocalRecordRef, IntegrationRecordRef);
     end;
 
     procedure FindUncoupledDestination(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef; var DestinationIsDeleted: Boolean): Boolean

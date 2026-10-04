@@ -70,13 +70,11 @@ codeunit 80035 "DVI Redirect" implements "DVI IRedirectTarget"
 
     local procedure OpenLocalRecord(IntegrationTableMapping: Record "Integration Table Mapping"; IntegrationId: Guid): Boolean
     var
-        CRMIntegrationRecord: Record "CRM Integration Record";
-        PageManagement: Codeunit "Page Management";
-        LocalRecordId: RecordId;
+        MappingResolver: Codeunit "DVI Mapping Resolver";
+        LocalRecordView: Interface "DVI ILocalRecordView";
     begin
-        if not CRMIntegrationRecord.FindRecordIDFromID(IntegrationId, IntegrationTableMapping."Table ID", LocalRecordId) then
-            exit(false);
-        exit(PageManagement.PageRun(LocalRecordId));
+        LocalRecordView := MappingResolver.GetHandler(IntegrationTableMapping);
+        exit(LocalRecordView.OpenLocalRecord(IntegrationTableMapping, IntegrationId));
     end;
 
     local procedure OfferCoupling(IntegrationTableMapping: Record "Integration Table Mapping"; IntegrationId: Guid): Boolean

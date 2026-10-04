@@ -1,6 +1,7 @@
 namespace DataverseIntegration.CRM;
 
 using DataverseIntegration.Core;
+using Microsoft.Integration.D365Sales;
 using Microsoft.Projects.Resources.Resource;
 
 pageextension 80402 "DVI Resource Card" extends "Resource Card"
@@ -157,7 +158,7 @@ pageextension 80402 "DVI Resource Card" extends "Resource Card"
 
     local procedure DVIRefresh()
     begin
-        DVIRecordActions.Refresh(Rec.RecordId());
+        DVIRecordActions.Refresh(Rec.RecordId(), Database::"CRM Product");
         DVIActive := DVIRecordActions.IsActive();
         DVIShowGroup := DVIRecordActions.ShowGroup();
         DVIShowOpen := DVIRecordActions.CanOpen();

@@ -2,6 +2,7 @@ namespace DataverseIntegration.Core;
 
 using DataverseIntegration.CDS;
 using DataverseIntegration.CRM;
+using DataverseIntegration.FieldService;
 
 permissionset 80000 "DVI Full"
 {
@@ -88,5 +89,19 @@ permissionset 80000 "DVI Full"
         codeunit "DVI Invoice Line Handler" = X,
         codeunit "DVI CRM Sales Orders" = X,
         codeunit "DVI CRM Invoices" = X,
-        codeunit "DVI Write-in Product Converter" = X;
+        codeunit "DVI Write-in Product Converter" = X,
+        codeunit "DVI Bookable Resource Handler" = X,
+        codeunit "DVI Customer Asset Handler" = X,
+        codeunit "DVI Warehouse Handler" = X,
+        codeunit "DVI Work Order Type Handler" = X,
+        codeunit "DVI Project Task Handler" = X,
+        codeunit "DVI FS Records" = X,
+        codeunit "DVI Project Line Handler" = X,
+        codeunit "DVI FS Projects" = X,
+        codeunit "DVI FS Value Converter" = X,
+        codeunit "DVI Work Order Handler" = X,
+        codeunit "DVI Incident Handler" = X,
+        codeunit "DVI Work Order Line Handler" = X,
+        codeunit "DVI FS Service Orders" = X,
+        codeunit "DVI FS Mapping Defaults" = X;
 }

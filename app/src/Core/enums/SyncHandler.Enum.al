@@ -2,14 +2,15 @@ namespace DataverseIntegration.Core;
 
 using DataverseIntegration.CDS;
 using DataverseIntegration.CRM;
+using DataverseIntegration.FieldService;
 
 enum 80000 "DVI Sync Handler" implements "DVI IRecordSync", "DVI IRecordCoupling", "DVI IRecordFilter", "DVI IConflictPolicy", "DVI IOptionSource", "DVI IHandlerScope",
-    "DVI IIntegrationRecordView", "DVI ISynchronizeAction", "DVI ICouplingAction", "DVI ICreateAction", "DVI ISynchLogView", "DVI IStatisticsAction", "DVI IRecordCompletion"
+    "DVI IIntegrationRecordView", "DVI ISynchronizeAction", "DVI ICouplingAction", "DVI ICreateAction", "DVI ISynchLogView", "DVI IStatisticsAction", "DVI IRecordCompletion", "DVI IChangeDetection", "DVI ILocalRecordView"
 {
     Caption = 'Synchronization Handler';
     Extensible = true;
     DefaultImplementation = "DVI IRecordSync" = "DVI Generic Handler", "DVI IRecordCoupling" = "DVI Generic Handler", "DVI IRecordFilter" = "DVI Generic Handler", "DVI IConflictPolicy" = "DVI Mapping Conflict Policy", "DVI IOptionSource" = "DVI Standard Option Source", "DVI IHandlerScope" = "DVI Generic Handler",
-        "DVI IIntegrationRecordView" = "DVI Standard Record Actions", "DVI ISynchronizeAction" = "DVI Standard Record Actions", "DVI ICouplingAction" = "DVI Standard Record Actions", "DVI ICreateAction" = "DVI Standard Record Actions", "DVI ISynchLogView" = "DVI Standard Record Actions", "DVI IStatisticsAction" = "DVI Standard Record Actions", "DVI IRecordCompletion" = "DVI Generic Handler";
+        "DVI IIntegrationRecordView" = "DVI Standard Record Actions", "DVI ISynchronizeAction" = "DVI Standard Record Actions", "DVI ICouplingAction" = "DVI Standard Record Actions", "DVI ICreateAction" = "DVI Standard Record Actions", "DVI ISynchLogView" = "DVI Standard Record Actions", "DVI IStatisticsAction" = "DVI Standard Record Actions", "DVI IRecordCompletion" = "DVI Generic Handler", "DVI IChangeDetection" = "DVI Generic Handler", "DVI ILocalRecordView" = "DVI Standard Record Actions";
 
     value(0; DVIMicrosoft)
     {
@@ -93,5 +94,50 @@ enum 80000 "DVI Sync Handler" implements "DVI IRecordSync", "DVI IRecordCoupling
     {
         Caption = 'Posted Sales Invoice Line - Invoice Product';
         Implementation = "DVI IRecordSync" = "DVI Invoice Line Handler", "DVI IRecordFilter" = "DVI Invoice Line Handler", "DVI IHandlerScope" = "DVI Invoice Line Handler";
+    }
+    value(400; DVIFSBookableResource)
+    {
+        Caption = 'Resource - Bookable Resource';
+        Implementation = "DVI IRecordSync" = "DVI Bookable Resource Handler", "DVI IRecordCoupling" = "DVI Bookable Resource Handler", "DVI IRecordFilter" = "DVI Bookable Resource Handler", "DVI IHandlerScope" = "DVI Bookable Resource Handler";
+    }
+    value(410; DVIFSCustomerAsset)
+    {
+        Caption = 'Service Item - Customer Asset';
+        Implementation = "DVI IRecordSync" = "DVI Customer Asset Handler", "DVI IRecordCoupling" = "DVI Customer Asset Handler", "DVI IRecordFilter" = "DVI Customer Asset Handler", "DVI IHandlerScope" = "DVI Customer Asset Handler";
+    }
+    value(420; DVIFSWarehouse)
+    {
+        Caption = 'Location - Warehouse';
+        Implementation = "DVI IRecordSync" = "DVI Warehouse Handler", "DVI IRecordCoupling" = "DVI Warehouse Handler", "DVI IHandlerScope" = "DVI Warehouse Handler";
+    }
+    value(430; DVIFSWorkOrderType)
+    {
+        Caption = 'Service Order Type - Work Order Type';
+        Implementation = "DVI IRecordSync" = "DVI Work Order Type Handler", "DVI IRecordCoupling" = "DVI Work Order Type Handler", "DVI IHandlerScope" = "DVI Work Order Type Handler";
+    }
+    value(440; DVIFSProjectTask)
+    {
+        Caption = 'Project Task - Project Task';
+        Implementation = "DVI IRecordSync" = "DVI Project Task Handler", "DVI IRecordCoupling" = "DVI Project Task Handler", "DVI IRecordFilter" = "DVI Project Task Handler", "DVI IHandlerScope" = "DVI Project Task Handler";
+    }
+    value(450; DVIFSProjectLine)
+    {
+        Caption = 'Project Journal Line - Work Order Product/Service';
+        Implementation = "DVI IRecordSync" = "DVI Project Line Handler", "DVI IRecordFilter" = "DVI Project Line Handler", "DVI IConflictPolicy" = "DVI Project Line Handler", "DVI IHandlerScope" = "DVI Project Line Handler", "DVI IRecordCompletion" = "DVI Project Line Handler";
+    }
+    value(460; DVIFSWorkOrder)
+    {
+        Caption = 'Service Order - Work Order';
+        Implementation = "DVI IRecordSync" = "DVI Work Order Handler", "DVI IRecordCoupling" = "DVI Work Order Handler", "DVI IRecordFilter" = "DVI Work Order Handler", "DVI IHandlerScope" = "DVI Work Order Handler", "DVI IChangeDetection" = "DVI Work Order Handler", "DVI ILocalRecordView" = "DVI Work Order Handler";
+    }
+    value(470; DVIFSWorkOrderIncident)
+    {
+        Caption = 'Service Item Line - Work Order Incident';
+        Implementation = "DVI IRecordSync" = "DVI Incident Handler", "DVI IHandlerScope" = "DVI Incident Handler";
+    }
+    value(480; DVIFSWorkOrderLine)
+    {
+        Caption = 'Service Line - Work Order Product/Service/Booking';
+        Implementation = "DVI IRecordSync" = "DVI Work Order Line Handler", "DVI IRecordCoupling" = "DVI Work Order Line Handler", "DVI IRecordFilter" = "DVI Work Order Line Handler", "DVI IHandlerScope" = "DVI Work Order Line Handler";
     }
 }

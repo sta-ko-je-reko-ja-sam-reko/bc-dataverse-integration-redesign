@@ -1,36 +1,42 @@
-namespace DataverseIntegration.CRM;
+namespace DataverseIntegration.FieldService;
 
 using DataverseIntegration.CDS;
 using DataverseIntegration.Core;
-using DataverseIntegration.FieldService;
+using DataverseIntegration.CRM;
 using Microsoft.Integration.D365Sales;
+using Microsoft.Integration.DynamicsFieldService;
 using Microsoft.Integration.SyncEngine;
-using Microsoft.Sales.History;
+using Microsoft.Projects.Project.Job;
+using Microsoft.Sales.Customer;
 
-codeunit 80409 "DVI Invoice Handler" implements "DVI IRecordSync", "DVI IRecordCoupling", "DVI IRecordFilter", "DVI IHandlerScope", "DVI IRecordCompletion"
+codeunit 80814 "DVI Project Task Handler" implements "DVI IRecordSync", "DVI IRecordCoupling", "DVI IRecordFilter", "DVI IHandlerScope"
 {
     Access = Public;
+
+    var
+        CustomerNotCoupledErr: Label 'The customer %1 of project %2 must be coupled to a Dataverse account.', Comment = '%1 = customer number, %2 = project number';
 
     procedure Serves(var Context: Codeunit "DVI Sync Context"): Boolean
     var
         IntegrationTableMapping: Record "Integration Table Mapping";
     begin
         Context.GetMapping(IntegrationTableMapping);
-        exit((IntegrationTableMapping."Table ID" = Database::"Sales Invoice Header") and (IntegrationTableMapping."Integration Table ID" = Database::"CRM Invoice"));
+        exit((IntegrationTableMapping."Table ID" = Database::"Job Task") and (IntegrationTableMapping."Integration Table ID" = Database::"FS Project Task"));
     end;
 
     procedure DefaultModule(var Context: Codeunit "DVI Sync Context"): Enum "DVI Integration Module"
     begin
-        exit(Enum::"DVI Integration Module"::DVISales);
+        exit(Enum::"DVI Integration Module"::DVIFieldService);
     end;
 
     procedure IgnoreRecord(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef): Boolean
     var
-        CRMInvoices: Codeunit "DVI CRM Invoices";
+        JobTask: Record "Job Task";
     begin
-        if SourceRecordRef.Number() <> Database::"Sales Invoice Header" then
+        if SourceRecordRef.Number() <> Database::"Job Task" then
             exit(false);
-        exit(CRMInvoices.IsReadOnly(SourceRecordRef));
+        SourceRecordRef.SetTable(JobTask);
+        exit(not IsProjectOpenForFieldService(JobTask."Job No."));
     end;
 
     procedure BeforeTransferFields(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
@@ -44,33 +50,34 @@ codeunit 80409 "DVI Invoice Handler" implements "DVI IRecordSync", "DVI IRecordC
 
     procedure BeforeInsert(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
     var
-        CRMInvoices: Codeunit "DVI CRM Invoices";
+        JobTask: Record "Job Task";
+        Job: Record Job;
+        FSProjectTask: Record "FS Project Task";
+        CDSCompany: Codeunit "DVI CDS Company";
     begin
         if not Context.IsToIntegrationTable() then
             exit;
-        CRMInvoices.CheckLines(Context, SourceRecordRef);
-        CRMInvoices.PrepareInvoice(Context, SourceRecordRef, DestinationRecordRef);
+        SourceRecordRef.SetTable(JobTask);
+        DestinationRecordRef.SetTable(FSProjectTask);
+        if Job.Get(JobTask."Job No.") then begin
+            FSProjectTask.ProjectDescription := Job.Description;
+            if Job."Bill-to Customer No." <> '' then
+                FSProjectTask.BillingAccountId := RequireAccount(Context, Job."Bill-to Customer No.", Job."No.");
+            if Job."Sell-to Customer No." <> '' then
+                FSProjectTask.ServiceAccountId := RequireAccount(Context, Job."Sell-to Customer No.", Job."No.")
+            else
+                FSProjectTask.ServiceAccountId := FSProjectTask.BillingAccountId;
+        end;
+        DestinationRecordRef.GetTable(FSProjectTask);
+        CDSCompany.SetCompanyId(DestinationRecordRef);
     end;
 
     procedure AfterInsert(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
-    var
-        SalesInvoiceHeader: Record "Sales Invoice Header";
-        CRMInvoices: Codeunit "DVI CRM Invoices";
-        FSProjects: Codeunit "DVI FS Projects";
     begin
-        if not Context.IsToIntegrationTable() then
-            exit;
-        CRMInvoices.QueueLinesAndTotals(Context, SourceRecordRef);
-        SourceRecordRef.SetTable(SalesInvoiceHeader);
-        FSProjects.WriteBackInvoicedQuantities(SalesInvoiceHeader);
     end;
 
     procedure BeforeModify(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
-    var
-        CDSCompany: Codeunit "DVI CDS Company";
     begin
-        if Context.IsToIntegrationTable() then
-            CDSCompany.SetCompanyId(DestinationRecordRef);
     end;
 
     procedure AfterModify(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
@@ -79,14 +86,6 @@ codeunit 80409 "DVI Invoice Handler" implements "DVI IRecordSync", "DVI IRecordC
 
     procedure Unchanged(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef)
     begin
-    end;
-
-    procedure Complete(var Context: Codeunit "DVI Sync Context"; var LocalRecordRef: RecordRef; var IntegrationRecordRef: RecordRef)
-    var
-        CRMInvoices: Codeunit "DVI CRM Invoices";
-    begin
-        if Context.IsToIntegrationTable() and Context.IsDestinationInserted() then
-            CRMInvoices.CompleteInvoice(LocalRecordRef, IntegrationRecordRef);
     end;
 
     procedure FindUncoupledDestination(var Context: Codeunit "DVI Sync Context"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef; var DestinationIsDeleted: Boolean): Boolean
@@ -121,5 +120,37 @@ codeunit 80409 "DVI Invoice Handler" implements "DVI IRecordSync", "DVI IRecordC
     begin
         Context.GetMapping(IntegrationTableMapping);
         exit(IntegrationTableMapping."Create New in Case of No Match");
+    end;
+
+    /// <summary>
+    /// Returns whether the tasks of a project go to Field Service: the project exists, is not blocked, is open and applies usage links.
+    /// </summary>
+    /// <param name="JobNo">The project.</param>
+    /// <returns>True when the project's tasks are synchronized.</returns>
+    procedure IsProjectOpenForFieldService(JobNo: Code[20]): Boolean
+    var
+        Job: Record Job;
+    begin
+        Job.SetLoadFields(Blocked, Status, "Apply Usage Link");
+        if not Job.Get(JobNo) then
+            exit(false);
+        if Job.Blocked <> Job.Blocked::" " then
+            exit(false);
+        if Job.Status <> Job.Status::Open then
+            exit(false);
+        exit(Job."Apply Usage Link");
+    end;
+
+    local procedure RequireAccount(var Context: Codeunit "DVI Sync Context"; CustomerNo: Code[20]; JobNo: Code[20]) AccountId: Guid
+    var
+        Customer: Record Customer;
+        CRMPrices: Codeunit "DVI CRM Prices";
+        CustomerRecordRef: RecordRef;
+    begin
+        Customer.SetRange("No.", CustomerNo);
+        CustomerRecordRef.GetTable(Customer);
+        AccountId := CRMPrices.RequireCoupledRecord(Context, CustomerRecordRef, Database::"CRM Account");
+        if IsNullGuid(AccountId) then
+            Error(CustomerNotCoupledErr, CustomerNo, JobNo);
     end;
 }

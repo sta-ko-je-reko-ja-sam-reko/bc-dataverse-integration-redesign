@@ -4,7 +4,7 @@ using Microsoft.Integration.SyncEngine;
 using System.Apps;
 using System.Reflection;
 
-codeunit 80010 "DVI Generic Handler" implements "DVI IRecordSync", "DVI IRecordCoupling", "DVI IRecordFilter", "DVI IHandlerScope", "DVI IRecordCompletion"
+codeunit 80010 "DVI Generic Handler" implements "DVI IRecordSync", "DVI IRecordCoupling", "DVI IRecordFilter", "DVI IHandlerScope", "DVI IRecordCompletion", "DVI IChangeDetection"
 {
     Access = Public;
 
@@ -56,6 +56,10 @@ codeunit 80010 "DVI Generic Handler" implements "DVI IRecordSync", "DVI IRecordC
     end;
 
     procedure Complete(var Context: Codeunit "DVI Sync Context"; var LocalRecordRef: RecordRef; var IntegrationRecordRef: RecordRef)
+    begin
+    end;
+
+    procedure FindIndirectlyChanged(var Context: Codeunit "DVI Sync Context"; ModifiedSince: DateTime; var LocalSystemIds: List of [Guid])
     begin
     end;
 
