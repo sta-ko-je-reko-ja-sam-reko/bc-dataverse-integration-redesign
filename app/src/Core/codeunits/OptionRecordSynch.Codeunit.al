@@ -232,12 +232,10 @@ codeunit 80026 "DVI Option Record Synch."
         CDSIntegrationMgt: Codeunit "CDS Integration Mgt.";
         EntityName: Text;
         FieldName: Text;
-        LocalModifiedAt: DateTime;
     begin
         OptionRecordRef.GetTable(TempOptionValue);
-        LocalModifiedAt := LocalRecordRef.Field(LocalRecordRef.SystemModifiedAtNo()).Value();
         if not ForceModify then
-            if LocalModifiedAt <= CRMOptionMapping."Last Synch. Modified On" then begin
+            if OptionCouplingStore.IsUnchangedSinceLastSynch(LocalRecordRef, CRMOptionMapping) then begin
                 SynchAction := SynchAction::DVIIgnoreUnchanged;
                 RecordSync.Unchanged(Context, LocalRecordRef, OptionRecordRef);
                 exit;

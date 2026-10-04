@@ -318,7 +318,7 @@ Each feature is a `FEAT-DVI-<n>` folder under `app/docs/` and ships as its own p
 | FEAT-DVI-005a CRM products and prices | Handlers for products, unit groups and units, price lists and prices, opportunities, the option sets of sales documents; prerequisites on `DVI Sync Context`; `DVI IStatisticsAction`; page extensions for items, resources, price groups, price lists and opportunities | 80400–80799 |
 | FEAT-DVI-005b CRM sales documents | Handlers for sales orders and invoices (totals, VAT rounding, lines as follow-ups); page extensions for documents and the Dataverse-side lists | 80400–80799 |
 | FEAT-DVI-006 Field Service | Handlers for bookable resources, customer assets, warehouses, work order types, project tasks, project journal lines (posting as a completion step), service orders with incidents and lines; `DVI FS Value Converter`; `DVI IChangeDetection`, `DVI ILocalRecordView`; this app's Field Service reset; page extensions for the resource, service item, location, service order type, project task and service order pages | 80800–81199 |
-| FEAT-DVI-007 Microsoft defects | Each defect in `analysis/` gets a test proving the redesigned implementation does not have it | per module |
+| FEAT-DVI-007 Microsoft defects | Each defect in `analysis/` gets a test, or a case of an integration test plan, proving the redesigned implementation does not have it (`DVI Microsoft Defect Tests`, 84022) | per module |
 
 ## 7. Decisions
 
