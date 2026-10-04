@@ -13,6 +13,7 @@ codeunit 80033 "DVI Record Actions"
         CouplingAction: Interface "DVI ICouplingAction";
         CreateAction: Interface "DVI ICreateAction";
         SynchLogView: Interface "DVI ISynchLogView";
+        StatisticsAction: Interface "DVI IStatisticsAction";
         Active: Boolean;
         ShowOpen: Boolean;
         ShowSynchronize: Boolean;
@@ -22,6 +23,7 @@ codeunit 80033 "DVI Record Actions"
         ShowCreateInDataverse: Boolean;
         ShowCreateInBusinessCentral: Boolean;
         ShowLogAction: Boolean;
+        ShowUpdateStatistics: Boolean;
 
     /// <summary>
     /// Resolves the mapping, coupling and handler of the record a page shows, and computes which actions are available. Call it from OnAfterGetCurrRecord.
@@ -48,6 +50,7 @@ codeunit 80033 "DVI Record Actions"
         CouplingAction := Handler;
         CreateAction := Handler;
         SynchLogView := Handler;
+        StatisticsAction := Handler;
         ComputeAvailability();
     end;
 
@@ -67,7 +70,7 @@ codeunit 80033 "DVI Record Actions"
     procedure ShowGroup(): Boolean
     begin
         exit(ShowOpen or ShowSynchronize or ShowSetUpCoupling or ShowDeleteCoupling or ShowMatchBasedCoupling or
-          ShowCreateInDataverse or ShowCreateInBusinessCentral or ShowLogAction);
+          ShowCreateInDataverse or ShowCreateInBusinessCentral or ShowLogAction or ShowUpdateStatistics);
     end;
 
     /// <summary>Returns whether opening the coupled Dataverse record is available.</summary>
@@ -126,6 +129,13 @@ codeunit 80033 "DVI Record Actions"
         exit(ShowLogAction);
     end;
 
+    /// <summary>Returns whether sending statistics to Dataverse is available.</summary>
+    /// <returns>True to show the action.</returns>
+    procedure CanUpdateStatistics(): Boolean
+    begin
+        exit(ShowUpdateStatistics);
+    end;
+
     /// <summary>Opens the coupled Dataverse record.</summary>
     procedure OpenIntegrationRecord()
     begin
@@ -178,6 +188,12 @@ codeunit 80033 "DVI Record Actions"
         SynchLogView.ShowLog(Context);
     end;
 
+    /// <summary>Sends statistics of the current record to Dataverse.</summary>
+    procedure UpdateStatistics()
+    begin
+        StatisticsAction.UpdateStatistics(Context);
+    end;
+
     local procedure ComputeAvailability()
     begin
         ShowOpen := IntegrationRecordView.CanOpenIntegrationRecord(Context);
@@ -188,6 +204,7 @@ codeunit 80033 "DVI Record Actions"
         ShowCreateInDataverse := CreateAction.CanCreateInDataverse(Context);
         ShowCreateInBusinessCentral := CreateAction.CanCreateInBusinessCentral(Context);
         ShowLogAction := SynchLogView.CanShowLog(Context);
+        ShowUpdateStatistics := StatisticsAction.CanUpdateStatistics(Context);
     end;
 
     local procedure ClearAvailability()
@@ -200,5 +217,6 @@ codeunit 80033 "DVI Record Actions"
         ShowCreateInDataverse := false;
         ShowCreateInBusinessCentral := false;
         ShowLogAction := false;
+        ShowUpdateStatistics := false;
     end;
 }

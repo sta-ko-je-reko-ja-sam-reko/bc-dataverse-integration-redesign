@@ -1,6 +1,6 @@
 {
     "name": "Dataverse Integration Redesign - project ruleset",
-    "description": "Includes the shared bc-dev-templates ruleset and adds the project-specific exceptions below.",
+    "description": "Includes the shared conventions ruleset and adds the project-specific exceptions below.",
     "includedRuleSets": [
         {
             "action": "Default",

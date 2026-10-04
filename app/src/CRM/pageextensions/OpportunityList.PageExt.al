@@ -1,13 +1,13 @@
-namespace DataverseIntegration.CDS;
+namespace DataverseIntegration.CRM;
 
 using DataverseIntegration.Core;
-using Microsoft.Sales.Customer;
+using Microsoft.CRM.Opportunity;
 
-pageextension 80201 "DVI Customer List" extends "Customer List"
+pageextension 80408 "DVI Opportunity List" extends "Opportunity List"
 {
     actions
     {
-        modify(CRMGotoAccount)
+        modify(CRMGotoOpportunity)
         {
             Visible = not DVIActive;
         }
@@ -27,18 +27,6 @@ pageextension 80201 "DVI Customer List" extends "Customer List"
         {
             Visible = not DVIActive;
         }
-        modify(CreateInCRM)
-        {
-            Visible = not DVIActive;
-        }
-        modify(CreateFromCRM)
-        {
-            Visible = not DVIActive;
-        }
-        modify(UpdateStatisticsInCRM)
-        {
-            Visible = not DVIActive;
-        }
         modify(ShowLog)
         {
             Visible = not DVIActive;
@@ -53,9 +41,9 @@ pageextension 80201 "DVI Customer List" extends "Customer List"
                 action(DVIOpenIntegrationRecord)
                 {
                     ApplicationArea = DVIRedesign;
-                    Caption = 'Account';
-                    Image = CoupledCustomer;
-                    ToolTip = 'Open the coupled Dataverse account.';
+                    Caption = 'Opportunity';
+                    Image = CoupledContactPerson;
+                    ToolTip = 'Open the coupled Dataverse opportunity.';
                     Visible = DVIShowOpen;
 
                     trigger OnAction()
@@ -68,7 +56,7 @@ pageextension 80201 "DVI Customer List" extends "Customer List"
                     ApplicationArea = DVIRedesign;
                     Caption = 'Synchronize';
                     Image = Refresh;
-                    ToolTip = 'Send or get updated data to or from Dataverse for the selected customers, in the directions the integration table mapping allows.';
+                    ToolTip = 'Send or get updated data to or from Dataverse for the selected opportunities, in the directions the integration table mapping allows.';
                     Visible = DVIShowSynchronize;
 
                     trigger OnAction()
@@ -77,19 +65,6 @@ pageextension 80201 "DVI Customer List" extends "Customer List"
                     begin
                         DVISelection(SelectedRecordRef);
                         DVIRecordActions.Synchronize(SelectedRecordRef);
-                    end;
-                }
-                action(DVIUpdateStatistics)
-                {
-                    ApplicationArea = DVIRedesign;
-                    Caption = 'Update Account Statistics';
-                    Image = UpdateXML;
-                    ToolTip = 'Send customer statistics data to Dataverse to update the Account Statistics FactBox.';
-                    Visible = DVIShowUpdateStatistics;
-
-                    trigger OnAction()
-                    begin
-                        DVIRecordActions.UpdateStatistics();
                     end;
                 }
                 group(DVICoupling)
@@ -101,7 +76,7 @@ pageextension 80201 "DVI Customer List" extends "Customer List"
                         ApplicationArea = DVIRedesign;
                         Caption = 'Set Up Coupling';
                         Image = LinkAccount;
-                        ToolTip = 'Create or modify the coupling to a Dataverse account.';
+                        ToolTip = 'Create or modify the coupling to a Dataverse opportunity.';
                         Visible = DVIShowSetUpCoupling;
 
                         trigger OnAction()
@@ -113,8 +88,8 @@ pageextension 80201 "DVI Customer List" extends "Customer List"
                     {
                         ApplicationArea = DVIRedesign;
                         Caption = 'Match-Based Coupling';
-                        Image = CoupledCustomer;
-                        ToolTip = 'Couple the selected customers to Dataverse accounts by matching field values.';
+                        Image = CoupledContactPerson;
+                        ToolTip = 'Couple the selected opportunities to Dataverse records by matching field values.';
                         Visible = DVIShowMatchBasedCoupling;
 
                         trigger OnAction()
@@ -130,7 +105,7 @@ pageextension 80201 "DVI Customer List" extends "Customer List"
                         ApplicationArea = DVIRedesign;
                         Caption = 'Delete Coupling';
                         Image = UnLinkAccount;
-                        ToolTip = 'Delete the couplings of the selected customers.';
+                        ToolTip = 'Delete the couplings of the selected opportunities.';
                         Visible = DVIShowDeleteCoupling;
 
                         trigger OnAction()
@@ -142,46 +117,41 @@ pageextension 80201 "DVI Customer List" extends "Customer List"
                         end;
                     }
                 }
-                group(DVICreate)
+                action(DVICreateInDataverse)
                 {
-                    Caption = 'Create';
+                    ApplicationArea = DVIRedesign;
+                    Caption = 'Create in Dataverse';
+                    Image = NewDocument;
+                    ToolTip = 'Create the selected opportunities in Dataverse and couple them.';
+                    Visible = DVIShowCreateInDataverse;
 
-                    action(DVICreateInDataverse)
-                    {
-                        ApplicationArea = DVIRedesign;
-                        Caption = 'Create Account in Dataverse';
-                        Image = NewCustomer;
-                        ToolTip = 'Create the selected customers as accounts in Dataverse and couple them.';
-                        Visible = DVIShowCreateInDataverse;
+                    trigger OnAction()
+                    var
+                        SelectedRecordRef: RecordRef;
+                    begin
+                        DVISelection(SelectedRecordRef);
+                        DVIRecordActions.CreateInDataverse(SelectedRecordRef);
+                    end;
+                }
+                action(DVICreateInBusinessCentral)
+                {
+                    ApplicationArea = DVIRedesign;
+                    Caption = 'Create in Business Central';
+                    Image = NewDocument;
+                    ToolTip = 'Pick Dataverse records and create opportunities from them.';
+                    Visible = DVIShowCreateInBusinessCentral;
 
-                        trigger OnAction()
-                        var
-                            SelectedRecordRef: RecordRef;
-                        begin
-                            DVISelection(SelectedRecordRef);
-                            DVIRecordActions.CreateInDataverse(SelectedRecordRef);
-                        end;
-                    }
-                    action(DVICreateInBusinessCentral)
-                    {
-                        ApplicationArea = DVIRedesign;
-                        Caption = 'Create Customer in Business Central';
-                        Image = NewCustomer;
-                        ToolTip = 'Pick Dataverse accounts and create customers from them.';
-                        Visible = DVIShowCreateInBusinessCentral;
-
-                        trigger OnAction()
-                        begin
-                            DVIRecordActions.CreateInBusinessCentral();
-                        end;
-                    }
+                    trigger OnAction()
+                    begin
+                        DVIRecordActions.CreateInBusinessCentral();
+                    end;
                 }
                 action(DVIShowLog)
                 {
                     ApplicationArea = DVIRedesign;
                     Caption = 'Synchronization Log';
                     Image = Log;
-                    ToolTip = 'View the synchronization jobs of the customer.';
+                    ToolTip = 'View the synchronization jobs of the opportunity.';
                     Visible = DVIShowLogAction;
 
                     trigger OnAction()
@@ -215,11 +185,10 @@ pageextension 80201 "DVI Customer List" extends "Customer List"
         DVIShowSynchronize: Boolean;
         DVIShowSetUpCoupling: Boolean;
         DVIShowDeleteCoupling: Boolean;
-        DVIShowMatchBasedCoupling: Boolean;
         DVIShowCreateInDataverse: Boolean;
+        DVIShowMatchBasedCoupling: Boolean;
         DVIShowCreateInBusinessCentral: Boolean;
         DVIShowLogAction: Boolean;
-        DVIShowUpdateStatistics: Boolean;
 
     local procedure DVIRefresh()
     begin
@@ -230,18 +199,17 @@ pageextension 80201 "DVI Customer List" extends "Customer List"
         DVIShowSynchronize := DVIRecordActions.CanSynchronize();
         DVIShowSetUpCoupling := DVIRecordActions.CanSetUpCoupling();
         DVIShowDeleteCoupling := DVIRecordActions.CanDeleteCoupling();
-        DVIShowMatchBasedCoupling := DVIRecordActions.CanMatchBasedCoupling();
         DVIShowCreateInDataverse := DVIRecordActions.CanCreateInDataverse();
+        DVIShowMatchBasedCoupling := DVIRecordActions.CanMatchBasedCoupling();
         DVIShowCreateInBusinessCentral := DVIRecordActions.CanCreateInBusinessCentral();
         DVIShowLogAction := DVIRecordActions.CanShowLog();
-        DVIShowUpdateStatistics := DVIRecordActions.CanUpdateStatistics();
     end;
 
     local procedure DVISelection(var SelectedRecordRef: RecordRef)
     var
-        Customer: Record Customer;
+        SelectedRecord: Record Opportunity;
     begin
-        CurrPage.SetSelectionFilter(Customer);
-        SelectedRecordRef.GetTable(Customer);
+        CurrPage.SetSelectionFilter(SelectedRecord);
+        SelectedRecordRef.GetTable(SelectedRecord);
     end;
 }

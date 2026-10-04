@@ -4,7 +4,7 @@ using Microsoft.Integration.Dataverse;
 using Microsoft.Integration.SyncEngine;
 using System.Reflection;
 
-codeunit 80032 "DVI Standard Record Actions" implements "DVI IIntegrationRecordView", "DVI ISynchronizeAction", "DVI ICouplingAction", "DVI ICreateAction", "DVI ISynchLogView"
+codeunit 80032 "DVI Standard Record Actions" implements "DVI IIntegrationRecordView", "DVI ISynchronizeAction", "DVI ICouplingAction", "DVI ICreateAction", "DVI ISynchLogView", "DVI IStatisticsAction"
 {
     Access = Public;
 
@@ -139,6 +139,15 @@ codeunit 80032 "DVI Standard Record Actions" implements "DVI IIntegrationRecordV
             IntegrationTableMapping.ShowLog(CRMIntegrationRecord.GetLatestJobIDFilter())
         else
             IntegrationTableMapping.ShowLog('');
+    end;
+
+    procedure CanUpdateStatistics(var Context: Codeunit "DVI Record Action Context"): Boolean
+    begin
+        exit(false);
+    end;
+
+    procedure UpdateStatistics(var Context: Codeunit "DVI Record Action Context")
+    begin
     end;
 
     local procedure CollectCoupledRecords(var SelectedRecordRef: RecordRef; var SystemIds: List of [Guid]; var IntegrationIds: List of [Guid])

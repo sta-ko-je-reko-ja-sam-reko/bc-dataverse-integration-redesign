@@ -42,6 +42,29 @@ codeunit 84011 "DVI Sync Context Tests"
     end;
 
     [Test]
+    procedure PrerequisitesSurviveAFailedRecord()
+    var
+        TempFollowUpBuffer: Record "DVI Follow-up Buffer" temporary;
+        Context: Codeunit "DVI Sync Context";
+        PrerequisiteId: Guid;
+    begin
+        // [GIVEN] A follow-up and a prerequisite queued by a record that then fails
+        PrerequisiteId := CreateGuid();
+        Context.AddFollowUp('UNITS', CreateGuid(), true);
+        Context.AddPrerequisite('UNITGROUPS', PrerequisiteId, true);
+
+        // [WHEN] The failure is handled
+        Context.DropFollowUpsAfterFailure();
+
+        // [THEN] Only the prerequisite is left, so the next run can succeed
+        Context.GetFollowUps(TempFollowUpBuffer);
+        Assert.RecordCount(TempFollowUpBuffer, 1);
+        TempFollowUpBuffer.FindFirst();
+        Assert.AreEqual('UNITGROUPS', TempFollowUpBuffer."Mapping Name", 'Prerequisite mapping');
+        Assert.AreEqual(PrerequisiteId, TempFollowUpBuffer."Source System Id", 'Prerequisite record');
+    end;
+
+    [Test]
     procedure DirectionAndInsertFlagsAreKept()
     var
         Context: Codeunit "DVI Sync Context";

@@ -84,13 +84,13 @@ codeunit 80007 "DVI Record Synch."
     end;
 
     /// <summary>
-    /// Records an error that stopped the last Run: logs it, marks the coupling as failed and drops the record's follow-ups.
+    /// Records an error that stopped the last Run: logs it, marks the coupling as failed and drops the record's follow-ups, keeping its prerequisites.
     /// </summary>
     /// <param name="ErrorText">The error raised by the Run.</param>
     /// <returns>Fail, or Skip when the record failed often enough to be skipped from now on.</returns>
     internal procedure HandleRunError(ErrorText: Text): Enum "DVI Synch Action"
     begin
-        Context.ClearFollowUps();
+        Context.DropFollowUpsAfterFailure();
         LogFailure(ErrorText);
         exit(SynchAction);
     end;
