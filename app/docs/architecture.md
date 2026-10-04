@@ -226,9 +226,9 @@ synchronizes.
 | `DVI ICouplingAction` | *Set Up Coupling*, *Delete Coupling*, *Match-Based Coupling* | Set up: always; delete: record coupled |
 | `DVI ICreateAction` | *Create in Dataverse* (direction To/Bidirectional), *Create in Business Central* (From/Bidirectional) | By direction |
 | `DVI ISynchLogView` | *Synchronization Log*, synch errors, skipped records | Always |
-| `DVI IStatisticsAction` | *Update Account Statistics* and the statistics factbox | Customer ↔ Account in the Dynamics 365 Sales module |
+| `DVI IStatisticsAction` (FEAT-DVI-005) | *Update Account Statistics* and the statistics factbox | Customer ↔ Account in the Dynamics 365 Sales module |
 | `DVI IRedirectTarget` | The *CRM Redirect* page: a link from Dataverse opens the coupled Business Central record | See below |
-| `DVI IIntegrationLookup` | Lookups to Dataverse records in the coupling dialog | Always |
+| `DVI IIntegrationLookup` (when a handler needs it) | Lookups to Dataverse records in the coupling dialog | Always; until then Microsoft's lookup applies |
 
 - **Availability is part of each interface** (`IsAvailable(Context)`), computed from the mapping, its direction and
   the coupling, never from module flags alone. The defaults above are this app's implementation; a partner changes
@@ -301,7 +301,7 @@ Each feature is a `FEAT-DVI-<n>` folder under `app/docs/` and ships as its own p
 | Feature | Content | Object IDs |
 |---|---|---|
 | FEAT-DVI-001 Core pipeline | Takeover proxies, `DVI Sync Handler` and `DVI Integration Module` enums, interfaces, `DVI Sync Context`, the pipeline (find/couple, direction, transfer through field mappings, insert/modify, conflicts, job log), generic handler, **option mappings** (Payment Terms, Shipment Method, Shipping Agent), `DVI Mapping Name` on couplings, switch action on *Integration Table Mappings*, this app's own *Use Default Synchronization Setup* that resets mappings to this app's handlers | 80000–80199 |
-| FEAT-DVI-002 UI framework | The UI interfaces, `DVI Record Actions` facade, *CRM Redirect* takeover, coupling dialog lookups, setup-page and mapping-list actions, error-list navigation | 80000–80199 |
+| FEAT-DVI-002 UI framework | The UI interfaces, `DVI Record Actions` facade, record-to-mapping resolution by coupling, *CRM Redirect* takeover (couple or create when not coupled), pilot on Customer Card and Customer List | 80000–80199, 80200–80201 |
 | FEAT-DVI-003 Value converters | Owner Id, coupled primary key, option values, currency, unit group, clear-on-failure; replaces `OnTransferFieldData` | 80000–80199 |
 | FEAT-DVI-004 CDS | Handlers for Customer/Vendor ↔ Account, Contact ↔ Contact, Currency, Systemuser → Salesperson, Product → Item, option mappings; page extensions for their cards and lists | 80200–80399 |
 | FEAT-DVI-005 CRM | Handlers for sales orders and invoices (totals, VAT rounding, lines as follow-ups), price lists, products and units, opportunities, statistics; page extensions for documents, price lists, items, resources and the Dataverse-side lists | 80400–80799 |
