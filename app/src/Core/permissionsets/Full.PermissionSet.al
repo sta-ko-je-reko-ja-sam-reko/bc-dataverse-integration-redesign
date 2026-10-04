@@ -1,5 +1,7 @@
 namespace DataverseIntegration.Core;
 
+using DataverseIntegration.CDS;
+
 permissionset 80000 "DVI Full"
 {
     Assignable = true;
@@ -61,5 +63,11 @@ permissionset 80000 "DVI Full"
         codeunit "DVI Unit of Measure Converter" = X,
         codeunit "DVI Option Value Converter" = X,
         codeunit "DVI Coupled Key Converter" = X,
-        codeunit "DVI Converter Assignment" = X;
+        codeunit "DVI Converter Assignment" = X,
+        codeunit "DVI Account Handler" = X,
+        codeunit "DVI Contact Handler" = X,
+        codeunit "DVI Currency Handler" = X,
+        codeunit "DVI Salesperson Handler" = X,
+        codeunit "DVI CDS Company" = X,
+        codeunit "DVI CDS Relations" = X;
 }
