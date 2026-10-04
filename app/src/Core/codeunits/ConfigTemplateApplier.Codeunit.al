@@ -43,6 +43,20 @@ codeunit 80022 "DVI Config. Template Applier"
     end;
 
     /// <summary>
+    /// Returns the configuration template the mapping's template rules select for a new destination record.
+    /// </summary>
+    /// <param name="IntegrationTableMapping">The mapping being run.</param>
+    /// <param name="SourceRecordRef">The record being synchronized.</param>
+    /// <param name="DestinationRecordRef">The new destination record.</param>
+    /// <returns>The template code, or an empty code when no rule applies.</returns>
+    internal procedure FindTemplateCode(IntegrationTableMapping: Record "Integration Table Mapping"; var SourceRecordRef: RecordRef; var DestinationRecordRef: RecordRef): Code[10]
+    begin
+        if DestinationRecordRef.Number() = IntegrationTableMapping."Integration Table ID" then
+            exit(FindIntegrationTableTemplate(IntegrationTableMapping, SourceRecordRef));
+        exit(FindTableTemplate(IntegrationTableMapping, SourceRecordRef));
+    end;
+
+    /// <summary>
     /// Returns why the last Apply failed.
     /// </summary>
     /// <returns>The error text, or an empty text after a successful Apply.</returns>
