@@ -12,6 +12,7 @@
 | `FEAT-DVI-003-ValueConverters/` | One converter per field mapping instead of `OnTransferFieldData` |
 | `FEAT-DVI-004-CDS/` | Handlers and pages for customers, vendors, contacts, currencies and salespeople |
 | `FEAT-DVI-005a-CRMProductsPrices/` | Handlers and pages for products, units, price lists, opportunities, document option sets; account statistics |
+| `FEAT-DVI-005b-CRMSalesDocuments/` | Handlers and pages for sales orders and posted invoices with their lines; completion step; write-in products |
 | `FEAT-DVI-<n>-<Title>/` | One folder per feature: technical documentation, test plans, getting started |
 
 The app supports English only (`supportedLocales` en-US), so each feature has an English getting-started guide and no

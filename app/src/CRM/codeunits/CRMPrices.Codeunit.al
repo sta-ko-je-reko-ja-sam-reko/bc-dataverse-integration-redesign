@@ -17,7 +17,7 @@ codeunit 80410 "DVI CRM Prices"
     Access = Internal;
 
     var
-        ProductNotCoupledErr: Label 'The %1 %2 is not coupled to a Dataverse product yet. It has been queued for synchronization; this record is synchronized again in the next run.', Comment = '%1 = table caption, %2 = number';
+        NotCoupledErr: Label 'The %1 %2 is not coupled to Dataverse yet. It has been queued for synchronization; this record is synchronized again in the next run.', Comment = '%1 = table caption, %2 = number';
         UnitGroupNotFoundErr: Label 'The Dataverse unit group %1 was not found.', Comment = '%1 = unit group code';
         UnitNotFoundErr: Label 'The Dataverse unit %1 was not found in the unit group %2.', Comment = '%1 = unit of measure code, %2 = unit group ID';
 
@@ -198,7 +198,14 @@ codeunit 80410 "DVI CRM Prices"
         end;
     end;
 
-    local procedure RequireCoupledRecord(var Context: Codeunit "DVI Sync Context"; var LocalRecordRef: RecordRef; IntegrationTableId: Integer) IntegrationId: Guid
+    /// <summary>
+    /// Returns the Dataverse ID of a record the current record needs. When the record is not coupled but its mapping would synchronize it, it is queued as a prerequisite and an error stops the current record.
+    /// </summary>
+    /// <param name="Context">The synchronization context, used to queue the prerequisite.</param>
+    /// <param name="LocalRecordRef">The needed record, filtered to it.</param>
+    /// <param name="IntegrationTableId">The Dataverse table it is coupled to.</param>
+    /// <returns>The coupled Dataverse ID, or an empty GUID when the record is outside its mapping's filter or has no mapping.</returns>
+    internal procedure RequireCoupledRecord(var Context: Codeunit "DVI Sync Context"; var LocalRecordRef: RecordRef; IntegrationTableId: Integer) IntegrationId: Guid
     var
         IntegrationTableMapping: Record "Integration Table Mapping";
         CRMIntegrationRecord: Record "CRM Integration Record";
@@ -216,6 +223,6 @@ codeunit 80410 "DVI CRM Prices"
         if FilterRecordRef.IsEmpty() then
             exit;
         Context.AddPrerequisite(IntegrationTableMapping.Name, LocalRecordRef.Field(LocalRecordRef.SystemIdNo()).Value(), true);
-        Error(ProductNotCoupledErr, LocalRecordRef.Caption(), Format(LocalRecordRef.Field(1).Value()));
+        Error(NotCoupledErr, LocalRecordRef.Caption(), Format(LocalRecordRef.Field(1).Value()));
     end;
 }
