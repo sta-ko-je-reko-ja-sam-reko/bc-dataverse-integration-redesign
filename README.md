@@ -44,6 +44,9 @@ test/   the test app
 tools/  build.ps1 - compiles app and test with all four code analyzers
 ```
 
+Open `bc-dataverse-integration-redesign.code-workspace` in VS Code: it loads `app`, `test` and the repository root
+as one multi-root workspace, so each AL project uses its own `.vscode` settings.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).
