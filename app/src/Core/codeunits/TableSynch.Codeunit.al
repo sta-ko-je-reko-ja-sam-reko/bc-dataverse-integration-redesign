@@ -44,6 +44,37 @@ codeunit 80006 "DVI Table Synch." implements "DVI ITableSynch"
         Connection.Close(ConnectionName);
     end;
 
+    /// <summary>
+    /// Synchronizes one Dataverse record into Business Central through a switched mapping, outside the scheduled run.
+    /// </summary>
+    /// <param name="IntegrationTableMapping">The switched mapping.</param>
+    /// <param name="IntegrationId">The ID of the Dataverse record.</param>
+    internal procedure SynchronizeIntegrationRecord(IntegrationTableMapping: Record "Integration Table Mapping"; IntegrationId: Guid)
+    var
+        RecordSynch: Codeunit "DVI Record Synch.";
+        JobLog: Codeunit "DVI Synch. Job Log";
+        MappingResolver: Codeunit "DVI Mapping Resolver";
+        SourceRecordRef: RecordRef;
+        Connection: Interface "DVI IConnection";
+        ConnectionName: Text;
+        JobId: Guid;
+    begin
+        Connection := MappingResolver.GetModule(IntegrationTableMapping);
+        if not Connection.IsEnabled() then
+            Error(ModuleNotEnabledErr, MappingResolver.GetModule(IntegrationTableMapping), IntegrationTableMapping.Name);
+        ConnectionName := Connection.Open();
+        JobId := StartJob(IntegrationTableMapping, IntegrationTableMapping.Direction::FromIntegrationTable);
+        if RecordSynch.Initialize(IntegrationTableMapping, JobId, false) then begin
+            SourceRecordRef.Open(IntegrationTableMapping."Integration Table ID");
+            SourceRecordRef.Field(IntegrationTableMapping."Integration Table UID Fld. No.").SetRange(IntegrationId);
+            if SourceRecordRef.FindFirst() then
+                SynchRecord(IntegrationTableMapping, RecordSynch, SourceRecordRef, JobId);
+            JobLog.FinishJob(JobId, '');
+        end else
+            JobLog.FinishJob(JobId, StrSubstNo(NoFieldMappingsErr, IntegrationTableMapping.Name));
+        Connection.Close(ConnectionName);
+    end;
+
     local procedure SynchToIntegrationTable(var IntegrationTableMapping: Record "Integration Table Mapping") LatestModifiedOn: DateTime
     var
         CRMFullSynchReviewLine: Record "CRM Full Synch. Review Line";

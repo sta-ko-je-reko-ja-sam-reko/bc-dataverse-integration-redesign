@@ -9,7 +9,9 @@ codeunit 80000 "DVI Service Locator"
         RunnerDispatchImpl: Interface "DVI IRunnerDispatch";
         TableSynchImpl: Interface "DVI ITableSynch";
         CouplingRunnerImpl: Interface "DVI ICouplingRunner";
+        RedirectTargetImpl: Interface "DVI IRedirectTarget";
         RunnerDispatchDefined: Boolean;
+        RedirectTargetDefined: Boolean;
         TableSynchDefined: Boolean;
         CouplingRunnerDefined: Boolean;
 
@@ -80,5 +82,28 @@ codeunit 80000 "DVI Service Locator"
     begin
         CouplingRunnerImpl := Implementation;
         CouplingRunnerDefined := true;
+    end;
+
+    /// <summary>
+    /// Returns the implementation that opens Business Central records from Dataverse links.
+    /// </summary>
+    /// <returns>The injected implementation, or the default redirect.</returns>
+    procedure RedirectTarget(): Interface "DVI IRedirectTarget"
+    var
+        DefaultRedirect: Codeunit "DVI Redirect";
+    begin
+        if not RedirectTargetDefined then
+            ImplementRedirectTarget(DefaultRedirect);
+        exit(RedirectTargetImpl);
+    end;
+
+    /// <summary>
+    /// Replaces the implementation that opens Business Central records from Dataverse links, for tests and dependent apps.
+    /// </summary>
+    /// <param name="Implementation">The implementation to use for the rest of the session.</param>
+    procedure ImplementRedirectTarget(Implementation: Interface "DVI IRedirectTarget")
+    begin
+        RedirectTargetImpl := Implementation;
+        RedirectTargetDefined := true;
     end;
 }

@@ -43,5 +43,12 @@ permissionset 80000 "DVI Full"
         codeunit "DVI Standard Option Source" = X,
         codeunit "DVI Option Record Synch." = X,
         codeunit "DVI Option Coupling Store" = X,
-        codeunit "DVI Default Assignment" = X;
+        codeunit "DVI Default Assignment" = X,
+        codeunit "DVI Record Action Context" = X,
+        codeunit "DVI Record Mapping Resolver" = X,
+        codeunit "DVI Standard Record Actions" = X,
+        codeunit "DVI Record Actions" = X,
+        codeunit "DVI UI Events" = X,
+        codeunit "DVI Redirect" = X,
+        codeunit "DVI Record Lookup" = X;
 }
