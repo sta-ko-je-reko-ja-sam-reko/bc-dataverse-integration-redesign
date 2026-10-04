@@ -12,7 +12,10 @@ permissionset 80000 "DVI Full"
         table "DVI Follow-up Buffer" = X,
         tabledata "DVI Option Value" = RIMD,
         table "DVI Option Value" = X,
+        tabledata "DVI Mapping Assignment" = RIMD,
+        table "DVI Mapping Assignment" = X,
         page "DVI Setup" = X,
+        page "DVI Mapping Assignments" = X,
         codeunit "DVI Service Locator" = X,
         codeunit "DVI Feature Mgt." = X,
         codeunit "DVI App Area Subscriber" = X,
@@ -39,5 +42,6 @@ permissionset 80000 "DVI Full"
         codeunit "DVI Follow-up Processor" = X,
         codeunit "DVI Standard Option Source" = X,
         codeunit "DVI Option Record Synch." = X,
-        codeunit "DVI Option Coupling Store" = X;
+        codeunit "DVI Option Coupling Store" = X,
+        codeunit "DVI Default Assignment" = X;
 }

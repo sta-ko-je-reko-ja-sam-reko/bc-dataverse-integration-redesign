@@ -11,11 +11,16 @@ codeunit 80013 "DVI Mapping Logic" implements "DVI IMappingLogic"
         NotDataverseMappingErr: Label 'The integration table mapping %1 is not a Dataverse mapping, so it cannot be switched to the redesigned synchronization.', Comment = '%1 = mapping name';
         NotStandardRunnerErr: Label 'The integration table mapping %1 runs codeunit %2 instead of the standard Dataverse synchronization, so it cannot be switched to the redesigned synchronization.', Comment = '%1 = mapping name, %2 = codeunit ID';
 
-    procedure Validate_Handler(var IntegrationTableMapping: Record "Integration Table Mapping"; xIntegrationTableMapping: Record "Integration Table Mapping")
+    procedure Validate_Handler(var MappingAssignment: Record "DVI Mapping Assignment"; xMappingAssignment: Record "DVI Mapping Assignment")
+    var
+        IntegrationTableMapping: Record "Integration Table Mapping";
     begin
-        if IntegrationTableMapping."DVI Handler" = xIntegrationTableMapping."DVI Handler" then
+        if MappingAssignment.Handler = xMappingAssignment.Handler then
             exit;
-        if IntegrationTableMapping."DVI Handler" = Enum::"DVI Sync Handler"::DVIMicrosoft then
+        if MappingAssignment.Handler = Enum::"DVI Sync Handler"::DVIMicrosoft then
+            exit;
+        IntegrationTableMapping.SetLoadFields(Type, "Synch. Codeunit ID");
+        if not IntegrationTableMapping.Get(MappingAssignment."Mapping Name") then
             exit;
         if IntegrationTableMapping.Type <> IntegrationTableMapping.Type::Dataverse then
             Error(NotDataverseMappingErr, IntegrationTableMapping.Name);

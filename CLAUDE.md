@@ -60,7 +60,10 @@ powershell -ExecutionPolicy Bypass -File tools\build.ps1            # app + test
 powershell -ExecutionPolicy Bypass -File tools\build.ps1 -Project app
 ```
 
-It refreshes `.alpackages`, compiles with CodeCop, UICop, AppSourceCop and PerTenantExtensionCop using
+`tools\test.ps1` publishes both packages to bc29loc and runs the test app (BcContainerHelper, elevated PowerShell,
+prompts for the container user).
+
+`tools\build.ps1` refreshes `.alpackages`, compiles with CodeCop, UICop, AppSourceCop and PerTenantExtensionCop using
 `dvi.ruleset.json` (which includes the shared ruleset), then copies the fresh app package into
 `test/.alpackages`. **Zero errors and zero warnings** is the bar.
 

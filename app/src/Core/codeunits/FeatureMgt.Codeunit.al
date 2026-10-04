@@ -32,6 +32,15 @@ codeunit 80001 "DVI Feature Mgt."
     end;
 
     /// <summary>
+    /// Forgets the cached Enabled value, so the next IsEnabled reads the setup again.
+    /// </summary>
+    internal procedure ClearCache()
+    begin
+        EnabledChecked := false;
+        EnabledCached := false;
+    end;
+
+    /// <summary>
     /// Raises an error when the redesigned Dataverse integration is not enabled.
     /// </summary>
     procedure CheckEnabled()

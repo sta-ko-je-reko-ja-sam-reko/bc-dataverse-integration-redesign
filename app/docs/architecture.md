@@ -52,7 +52,9 @@ does its work inline.
    an inverted `if FSConnectionSetup.IsEnabled() then exit;` that makes two Field Service filters run only when
    Field Service is *disabled*; branches that read local records which were never loaded; an empty `SetFilter` that
    re-synchronizes every booking; a reset that raises the event of a different mapping; on the Field Service
-   *Service Item Card* and list, `CRMIsCoupledToRecord` is never assigned, so *Delete Coupling* is always disabled.
+   *Service Item Card* and list, `CRMIsCoupledToRecord` is never assigned, so *Delete Coupling* is always disabled;
+   the uncoupling job deletes orphan couplings with the primary key fields in the wrong order, so it never finds
+   them; option synchronization checks for changes against a coupling table that option mappings do not use.
 
 ## 2. Design goals
 
@@ -113,34 +115,40 @@ Job Queue ─► Integration Synch. Job Runner ─► Codeunit.Run(mapping."Sync
 
 ## 4. The model
 
-### 4.1 Per-mapping handler: an extensible enum on `Integration Table Mapping`
+### 4.1 Per-mapping handler: an assignment kept by mapping name
+
+Microsoft's *Use Default Synchronization Setup* deletes and re-creates mappings, so a field on the mapping record
+would be lost on every reset. The choice therefore lives in this app's own table, keyed by mapping name; the mapping
+record shows it through FlowFields:
 
 ```al
-tableextension 80000 "DVI Integration Table Mapping" extends "Integration Table Mapping"
+table 80003 "DVI Mapping Assignment"
 {
     fields
     {
-        field(80000; "DVI Handler"; Enum "DVI Sync Handler")      // Microsoft (default) = not switched
-        field(80001; "DVI Module"; Enum "DVI Integration Module")  // CDS, CRM, Field Service
+        field(1; "Mapping Name"; Code[20]) { }               // the integration table mapping
+        field(2; Handler; Enum "DVI Sync Handler") { }       // Microsoft (default) = not switched
+        field(3; Module; Enum "DVI Integration Module") { }  // Dataverse, Dynamics 365 Sales, Field Service
     }
 }
 
-enum 80000 "DVI Sync Handler" implements "DVI IRecordSync", "DVI IRecordCoupling", "DVI IRecordFilter", "DVI IConflictPolicy"
+enum 80000 "DVI Sync Handler" implements "DVI IRecordSync", "DVI IRecordCoupling", "DVI IRecordFilter",
+    "DVI IConflictPolicy", "DVI IOptionSource", "DVI IHandlerScope"
 {
     Extensible = true;
-    DefaultImplementation = "DVI IRecordSync" = "DVI Generic Record Sync", ...;
-
-    value(0; Microsoft) { }                    // not switched: Microsoft's engine runs
-    value(1; Generic) { }                      // field mappings only, no table-pair logic
-    value(10; "Customer - Account") { Implementation = "DVI IRecordSync" = "DVI Customer Account Sync", ...; }
-    value(11; "Account - Customer") { ... }
-    // ... one value per table pair and direction that has behaviour of its own
+    value(0; DVIMicrosoft) { }   // not switched: Microsoft's engine runs
+    value(1; DVIGeneric) { }     // field mappings only, no table-pair logic
+    // one value per table pair that has behaviour of its own, added by the module features
 }
 ```
 
-- The handler is chosen **per mapping**, so two mappings on the same tables can behave differently.
-- A partner adds an `enumextension` value bound to its own implementations and selects it on the mapping. Its
-  implementation may hold this app's implementation and call it first (decorator), so it extends rather than copies.
+- The handler is chosen **per mapping**, so two mappings on the same tables can behave differently. A temporary
+  copy made by *Synchronize now* uses its parent's assignment.
+- *Use Redesigned Synchronization* picks the default handler by iterating the enum's values and asking each
+  `DVI IHandlerScope.Serves` whether it implements the mapping's table pair; *Generic* is the fallback. A partner's
+  `enumextension` value takes part in that choice without any registration code.
+- A partner's implementation may hold this app's implementation and call it first (decorator), so it extends rather
+  than copies.
 - `DVI Module` selects the connection guard (§4.4), replacing the inconsistent enablement checks.
 
 ### 4.2 The pipeline steps: segregated interfaces
@@ -150,10 +158,12 @@ Each interface is one concern, so a partner implements only what it changes.
 | Interface | Methods (all receive the `DVI Sync Context`) | Replaces Microsoft's |
 |---|---|---|
 | `DVI IRecordSync` | `BeforeTransferFields`, `AfterTransferFields`, `BeforeInsert`, `AfterInsert`, `BeforeModify`, `AfterModify`, `Unchanged` | `OnBefore/AfterTransferRecordFields`, `OnBefore/AfterInsertRecord`, `OnBefore/AfterModifyRecord`, `OnAfterUnchangedRecordHandled` |
-| `DVI IRecordCoupling` | `FindUncoupledDestination`, `AfterCouple`, `BeforeUncouple`, `AfterUncouple` | `OnFindUncoupledDestinationRecord`, `OnAfterCoupleRecord`, `OnBefore/AfterUncoupleRecord` |
+| `DVI IRecordCoupling` | `FindUncoupledDestination`, `AfterCouple`, `BeforeUncouple`, `AfterUncouple`, `SetMatchingFilter`, `CreateNewOnNoMatch` | `OnFindUncoupledDestinationRecord`, `OnAfterCoupleRecord`, `OnBefore/AfterUncoupleRecord`, `OnBeforeSetMatchingFilter`, and the mapping names hard-coded in `ShouldCreateNewRecordsInCaseOfNoMatch` |
 | `DVI IRecordFilter` | `IgnoreRecord` | `OnQueryPostFilterIgnoreRecord` (which passes only the source record) |
 | `DVI IConflictPolicy` | `ResolveUpdateConflict`, `ResolveDeletionConflict` | `OnUpdateConflictDetected`, `OnDeletionConflictDetected` and its variants |
 | `DVI IValueConverter` | `Convert` | `OnTransferFieldData` (see §4.3) |
+| `DVI IOptionSource` | `GetOptionSetField`, `LoadOptions` | `LoadCRMOption` / `OnPrepareNewDestination`, a `case` over three internal option tables |
+| `DVI IHandlerScope` | `Serves`, `DefaultModule` | Nothing: Microsoft decides by table-name strings at run time |
 | `DVI IConnection` | `IsEnabled`, `Open`, `Close` | `IsCRMIntegrationEnabled` / `IsCDSIntegrationEnabled` / `FS Connection Setup.IsEnabled` scattered per subscriber |
 
 `DVI Sync Context` is a codeunit passed by `var` to every step. It carries what Microsoft's events leave out: the
