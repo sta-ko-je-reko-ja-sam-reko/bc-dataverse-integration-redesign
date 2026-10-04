@@ -228,9 +228,17 @@ synchronizes.
 - **Pages stay thin.** A page extension calls one facade (`DVI Record Actions`) in `OnAfterGetCurrRecord`, binds
   `Visible`/`Enabled` of its actions to the result, and each `OnAction` is a one-line delegation. No mapping names, no
   filter strings, no `case` on table numbers in a page.
-- **Microsoft's actions are hidden on a switched mapping**, action by action with `modify(...) { Visible = ...; }`.
-  A page extension cannot change an existing trigger, and none of Microsoft's actions has an `IsHandled` event, so
-  hiding and replacing is the only way to stop the old code from running for a switched mapping.
+- **Visibility is decided per action, by its interface.** There is no group-level switch: on a
+  `From Integration Table` mapping, `DVI IIntegrationRecordView` and the *Create in Dataverse* side of
+  `DVI ICreateAction` report themselves unavailable and their actions disappear, while *Synchronize* (pull),
+  *Coupling* and the log stay as long as their own interfaces say so. The group is hidden only when none of its
+  actions is available.
+- **One UI everywhere.** This app's action group replaces Microsoft's on every covered page, for switched and
+  unswitched mappings alike; Microsoft's actions are hidden action by action with `modify(...) { Visible = false; }`.
+  A page extension cannot change an existing trigger and none of Microsoft's actions has an `IsHandled` event, so
+  hiding and replacing is the only way to take them over. On a mapping left on `Microsoft`, the `Microsoft` enum
+  value's UI implementations call Microsoft's own procedures (`ShowCRMEntityFromRecordID`, `UpdateOneNow`,
+  `DefineCoupling`, …), so the behaviour is Microsoft's while the visibility already follows the mapping.
 - **CRM Redirect** keeps Microsoft's page (Dataverse links point to page 5329) and takes over
   `OnBeforeOpenCoupledNavRecordPage`, which is a full `IsHandled` takeover. `DVI IRedirectTarget` resolves the
   Dataverse entity to a mapping, the mapping to the coupled record and the record to its page. When the record is not
@@ -262,7 +270,9 @@ when a record is not coupled and its table has several mappings.
 
 ## 5. Scope and limits
 
-- **Switched mappings only.** On a mapping left on `Microsoft`, nothing changes.
+- **Synchronization: switched mappings only.** On a mapping left on `Microsoft`, records synchronize exactly as
+  Microsoft ships it. **UI: every covered page**, with Microsoft's behaviour behind the actions of unswitched
+  mappings (§4.6).
 - **Microsoft's non-engine subscribers stay active.** Posting, deletion and setup subscribers in the CDS, CRM and
   Field Service code still run; an extension cannot unbind another app's static subscribers. Where one of them
   interferes with a switched mapping, this app documents it and, when possible, makes it a no-op through an
@@ -280,7 +290,7 @@ Each feature is a `FEAT-DVI-<n>` folder under `app/docs/` and ships as its own p
 
 | Feature | Content | Object IDs |
 |---|---|---|
-| FEAT-DVI-001 Core pipeline | Takeover proxies, `DVI Sync Handler` and `DVI Integration Module` enums, interfaces, `DVI Sync Context`, the pipeline (find/couple, direction, transfer through field mappings, insert/modify, conflicts, job log), generic handler, `DVI Mapping Name` on couplings, switch action on *Integration Table Mappings* | 80000–80199 |
+| FEAT-DVI-001 Core pipeline | Takeover proxies, `DVI Sync Handler` and `DVI Integration Module` enums, interfaces, `DVI Sync Context`, the pipeline (find/couple, direction, transfer through field mappings, insert/modify, conflicts, job log), generic handler, **option mappings** (Payment Terms, Shipment Method, Shipping Agent), `DVI Mapping Name` on couplings, switch action on *Integration Table Mappings*, this app's own *Use Default Synchronization Setup* that resets mappings to this app's handlers | 80000–80199 |
 | FEAT-DVI-002 UI framework | The UI interfaces, `DVI Record Actions` facade, *CRM Redirect* takeover, coupling dialog lookups, setup-page and mapping-list actions, error-list navigation | 80000–80199 |
 | FEAT-DVI-003 Value converters | Owner Id, coupled primary key, option values, currency, unit group, clear-on-failure; replaces `OnTransferFieldData` | 80000–80199 |
 | FEAT-DVI-004 CDS | Handlers for Customer/Vendor ↔ Account, Contact ↔ Contact, Currency, Systemuser → Salesperson, Product → Item, option mappings; page extensions for their cards and lists | 80200–80399 |
@@ -288,15 +298,14 @@ Each feature is a `FEAT-DVI-<n>` folder under `app/docs/` and ships as its own p
 | FEAT-DVI-006 Field Service | Handlers for project tasks, work order products/services, customer assets, bookable resources, service orders, consumption posting as a follow-up; page extensions for the service, project, resource and location pages | 80800–81199 |
 | FEAT-DVI-007 Microsoft defects | Each defect in `analysis/` gets a test proving the redesigned implementation does not have it | per module |
 
-## 7. Decisions still open
+## 7. Decisions
 
-1. **Field Service base app compatibility**: whether a switched Field Service mapping must also keep Microsoft's
-   `FS Setup Defaults` reset behaviour, or this app owns resetting its handlers.
-2. **Option mappings** (`Int. Option Synch. Invoke`) run through the same `OnBeforeRun`; whether FEAT-DVI-001 covers
-   them or they follow in FEAT-DVI-002.
-3. **Multi-company synch** (`Multi Company Synch. Enabled`) is in scope only after FEAT-DVI-004.
-4. **Hiding by direction**: whether the whole action group disappears on a `From Integration Table` mapping, or only
-   the actions that push to or open Dataverse (*Open*, *Create in Dataverse*) while *Synchronize* (pull), *Coupling*
-   and the log stay.
-5. **Pages of unswitched mappings**: whether this app's action group also replaces Microsoft's on mappings left on
-   `Microsoft` (uniform UI everywhere), or appears only for switched mappings.
+Taken by the owner on 2026-10-04:
+
+1. **Action visibility** is decided per action by its interface's availability, not by hiding the whole group (§4.6).
+2. **One UI everywhere**: this app's action group replaces Microsoft's on every covered page, also for mappings left
+   on `Microsoft`, whose actions then call Microsoft's procedures (§4.6).
+3. **Option mappings** (`Int. Option Synch. Invoke`, reached through the same `OnBeforeRun`) are part of FEAT-DVI-001.
+4. **Resetting mappings is owned by this app**: its *Use Default Synchronization Setup* re-creates the default
+   mappings with this app's handlers, including the Field Service ones; it does not rely on `FS Setup Defaults`.
+5. **Multi-company synch** (`Multi Company Synch. Enabled`) follows after FEAT-DVI-004 (CDS).
