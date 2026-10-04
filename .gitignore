@@ -1,0 +1,51 @@
+### AL / Dynamics 365 Business Central ###
+
+# VS Code: share settings + launch template, keep personal launch config local.
+# Two things matter in these patterns:
+#   1. "*" not "/" at the end — git does not descend into an ignored *directory*,
+#      so ".vscode/" would make the negations below unreachable.
+#   2. Leading "**/" — a pattern containing a slash is anchored to this file's
+#      directory, so plain ".vscode/*" would miss app/.vscode and test/.vscode.
+**/.vscode/*
+!**/.vscode/settings.json
+!**/.vscode/launch.json.template
+!**/.vscode/extensions.json
+!**/.vscode/tasks.json
+
+# Cache folder
+.alcache/
+# Symbols folder
+.alpackages/
+# Snapshots folder
+.snapshots/
+# Testing Output folder
+.output/
+# Extension App-file
+*.app
+# Rapid Application Development File
+rad.json
+# Translation Base-file
+*.g.xlf
+# License-files
+*.bclicense
+*.flf
+# Test results file
+TestResults.xml
+
+# Build / packaging output
+.buildartifacts/
+*.zip
+
+# OS noise
+Thumbs.db
+desktop.ini
+
+# Shared BC conventions (a private conventions repository, wired in as directory junctions).
+# Kept out of git so the rules track that repository instead of drifting as a copy.
+# See CLAUDE.md "Shared conventions".
+.bc-conventions/
+.greenfield/
+
+# Generated translation base file
+Translations/*.g.xlf
+

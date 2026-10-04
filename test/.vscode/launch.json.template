@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "bc29loc (BC 29.0 W1 container)",
+      "request": "launch",
+      "type": "al",
+      "environmentType": "OnPrem",
+      "server": "http://bc29loc",
+      "serverInstance": "BC",
+      "authentication": "UserPassword",
+      "tenant": "default",
+      "port": 7049,
+      "schemaUpdateMode": "Synchronize",
+      "breakOnError": "All",
+      "breakOnRecordWrite": "None",
+      "launchBrowser": true
+    }
+  ]
+}

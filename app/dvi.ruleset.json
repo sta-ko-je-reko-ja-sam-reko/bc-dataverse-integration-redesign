@@ -1,0 +1,22 @@
+{
+    "name": "Dataverse Integration Redesign - project ruleset",
+    "description": "Includes the shared bc-dev-templates ruleset and adds the project-specific exceptions below.",
+    "includedRuleSets": [
+        {
+            "action": "Default",
+            "path": "../.bc-conventions/ruleset.json"
+        }
+    ],
+    "rules": [
+        {
+            "id": "AS0081",
+            "action": "Hidden",
+            "justification": "internalsVisibleTo exposes internal objects only to the project's own test app (Dataverse Integration Redesign Tests, publisher matr), which is never deployed to production."
+        },
+        {
+            "id": "PTE0012",
+            "action": "Hidden",
+            "justification": "Same as AS0081: internalsVisibleTo is limited to the project's own test app."
+        }
+    ]
+}

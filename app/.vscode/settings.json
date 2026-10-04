@@ -1,0 +1,24 @@
+{
+  "al.ruleSetPath": "./dvi.ruleset.json",
+  "al.enableCodeAnalysis": true,
+  "al.codeAnalyzers": [
+    "${CodeCop}",
+    "${UICop}",
+    "${AppSourceCop}",
+    "${PerTenantExtensionCop}"
+  ],
+  "al.enableCodeActions": true,
+  "al.incrementalBuild": true,
+  "al.packageCachePath": ".alpackages",
+  "al.compilationOptions": {
+    "generateReportLayout": true
+  },
+  "editor.formatOnSave": true,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "[al]": {
+    "editor.defaultFormatter": "ms-dynamics-smb.al",
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  }
+}

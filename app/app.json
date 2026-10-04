@@ -1,0 +1,53 @@
+{
+  "id": "97eee0e7-f35b-47ed-98fe-64d246b9eca8",
+  "name": "Dataverse Integration Redesign",
+  "publisher": "matr",
+  "brief": "Redesigns the Dataverse, Dynamics 365 Sales and Field Service integration around swappable interfaces instead of hard-wired event subscribers.",
+  "description": "Business Central ships three Dataverse integrations: Common Data Service (CDS), Dynamics 365 Sales (CRM) and Dynamics 365 Field Service. Each reacts to the generic synchronization engine through its own event subscribers, branching on table numbers, and several steps of those flows offer partners no extension point. This app reorganizes that logic around interfaces resolved per integration table mapping, so every step of every flow can be replaced or extended by a dependent app. It reuses Microsoft's setup and mapping tables (CDS Connection Setup, CRM Connection Setup, FS Connection Setup, Integration Table Mapping, Integration Field Mapping).",
+  "version": "1.0.0.0",
+  "privacyStatement": "https://github.com/sta-ko-je-reko-ja-sam-reko/bc-dataverse-integration-redesign/blob/main/app/docs/privacy.md",
+  "EULA": "https://github.com/sta-ko-je-reko-ja-sam-reko/bc-dataverse-integration-redesign/blob/main/LICENSE",
+  "help": "https://github.com/sta-ko-je-reko-ja-sam-reko/bc-dataverse-integration-redesign/blob/main/app/docs/getting-started-english.md",
+  "url": "https://github.com/sta-ko-je-reko-ja-sam-reko/bc-dataverse-integration-redesign",
+  "contextSensitiveHelpUrl": "https://github.com/sta-ko-je-reko-ja-sam-reko/bc-dataverse-integration-redesign/blob/main/app/docs/getting-started-english.md",
+  "logo": "img/AppLogo.png",
+  "dependencies": [
+    {
+      "id": "1ba1031e-eae9-4f20-b9d2-d19b6d1e3f29",
+      "name": "Field Service Integration",
+      "publisher": "Microsoft",
+      "version": "29.0.0.0"
+    }
+  ],
+  "screenshots": [],
+  "platform": "1.0.0.0",
+  "application": "29.0.0.0",
+  "idRanges": [
+    {
+      "from": 80000,
+      "to": 83999
+    }
+  ],
+  "resourceExposurePolicy": {
+    "allowDebugging": true,
+    "allowDownloadingSource": true,
+    "includeSourceInSymbolFile": true
+  },
+  "runtime": "18.0",
+  "target": "Cloud",
+  "features": [
+    "TranslationFile",
+    "NoImplicitWith",
+    "NoPromotedActionProperties"
+  ],
+  "supportedLocales": [
+    "en-US"
+  ],
+  "internalsVisibleTo": [
+    {
+      "id": "47ec428c-e5fa-4174-a38b-11f119c74e65",
+      "name": "Dataverse Integration Redesign Tests",
+      "publisher": "matr"
+    }
+  ]
+}
