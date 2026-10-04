@@ -47,7 +47,8 @@ repository name) and nothing from the owner's private product repositories.
 | Auth | NavUserPassword (`"authentication": "UserPassword"` in `launch.json`) |
 | Dev endpoint | `http://bc29loc:7049/BC/dev`, web client `http://bc29loc/BC/?tenant=default` |
 
-`launch.json` is gitignored; `launch.json.template` is the committed copy.
+`app/.vscode/launch.json` and `test/.vscode/launch.json` are committed and target bc29loc, so **AL: Download Symbols**
+works right after cloning (VS Code prompts for the container credentials; none are stored in the repo).
 
 ## Symbols and building
 

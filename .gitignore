@@ -1,6 +1,6 @@
 ### AL / Dynamics 365 Business Central ###
 
-# VS Code: share settings + launch template, keep personal launch config local.
+# VS Code: share settings and launch.json (bc29loc, no credentials in it).
 # Two things matter in these patterns:
 #   1. "*" not "/" at the end — git does not descend into an ignored *directory*,
 #      so ".vscode/" would make the negations below unreachable.
@@ -8,7 +8,7 @@
 #      directory, so plain ".vscode/*" would miss app/.vscode and test/.vscode.
 **/.vscode/*
 !**/.vscode/settings.json
-!**/.vscode/launch.json.template
+!**/.vscode/launch.json
 !**/.vscode/extensions.json
 !**/.vscode/tasks.json
 
